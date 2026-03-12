@@ -40,12 +40,19 @@ export default function App() {
     setIsLoading(true);
 
     try {
-      const response = await chat.sendMessage({ message: input });
-      const assistantMessage: Message = { id: (Date.now() + 1).toString(), role: 'assistant', text: response.text || '' };
+      const streamResponse = await chat.sendMessageStream({ message: input });
+      let assistantMessage: Message = { id: (Date.now() + 1).toString(), role: 'assistant', text: '' };
+      
       setMessages(prev => [...prev, assistantMessage]);
+
+      for await (const chunk of streamResponse) {
+        assistantMessage = { ...assistantMessage, text: assistantMessage.text + (chunk.text || '') };
+        setMessages(prev => prev.map(m => m.id === assistantMessage.id ? assistantMessage : m));
+      }
     } catch (error) {
       console.error('Chat error:', error);
-      setMessages(prev => [...prev, { id: 'error', role: 'assistant', text: 'Üzgünüm, şu an teknik bir sorun yaşıyorum. Lütfen daha sonra tekrar deneyin.' }]);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setMessages(prev => [...prev, { id: 'error', role: 'assistant', text: `Üzgünüm, bir hata oluştu: ${errorMessage}` }]);
     } finally {
       setIsLoading(false);
     }
