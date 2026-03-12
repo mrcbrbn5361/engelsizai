@@ -1,0 +1,5 @@
+{
+  "name": "EngelsizAI",
+  "description": "Feyzullah Kıyıklık Engelliler Sarayı Resmi Yapay Zeka Asistanı",
+  "requestFramePermissions": ["geolocation"]
+}
