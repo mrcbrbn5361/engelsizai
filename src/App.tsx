@@ -9,6 +9,7 @@ import { Send, Loader2, Bot, User, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Analytics } from "@vercel/analytics/react";
 
 interface Message {
   id: string;
@@ -60,6 +61,7 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-[var(--bg-warm)] text-[var(--text-stone)] font-sans">
+      <Analytics />
       <header className="p-4 md:p-6 bg-white/50 backdrop-blur-md border-b border-stone-200/50 shadow-sm flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-emerald-700 text-white rounded-2xl">
