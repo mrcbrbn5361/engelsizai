@@ -19,7 +19,7 @@ interface Message {
 
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', role: 'assistant', text: 'Merhaba! EngelsizAI burada. Feyzullah Kıyıklık Engelliler Sarayı ile ilgili size nasıl yardımcı olabilirim? 😊' }
+    { id: '1', role: 'assistant', text: 'Merhaba! Ben Feyzullah Kıyıklık Engelliler Sarayı öğrencisi Miraç Birben tarafından geliştirilen bir Yapay Zeka Projesiyim. Feyzullah Kıyıklık Engelliler Sarayı ile ilgili size nasıl yardımcı olabilirim? 😊' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -85,7 +85,7 @@ export default function App() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={`max-w-[90%] md:max-w-[80%] p-6 rounded-3xl shadow-[var(--shadow-soft)] ${message.role === 'user' ? 'bg-[var(--primary)] text-white rounded-br-none' : 'bg-[var(--bg-card)] border border-[var(--border)] rounded-bl-none'}`}>
+              <div className={`max-w-[90%] md:max-w-[80%] p-6 rounded-3xl shadow-[var(--shadow-soft)] break-words overflow-hidden ${message.role === 'user' ? 'bg-[var(--primary)] text-white rounded-br-none' : 'bg-[var(--bg-card)] border border-[var(--border)] rounded-bl-none'}`}>
                 <div className="flex items-center gap-3 mb-3 opacity-80 text-xs font-bold uppercase tracking-widest">
                   {message.role === 'assistant' ? <Bot size={16} /> : <User size={16} />}
                   {message.role === 'assistant' ? 'EngelsizAI' : 'Siz'}
