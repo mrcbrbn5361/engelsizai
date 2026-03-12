@@ -52,17 +52,17 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[var(--bg-warm)] text-[var(--text-stone)] font-sans">
-      <header className="p-6 bg-white/50 backdrop-blur-md border-b border-stone-200/50 shadow-sm flex items-center justify-between sticky top-0 z-10">
+    <div className="flex flex-col h-[100dvh] bg-[var(--bg-warm)] text-[var(--text-stone)] font-sans">
+      <header className="p-4 md:p-6 bg-white/50 backdrop-blur-md border-b border-stone-200/50 shadow-sm flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-emerald-700 text-white rounded-2xl">
             <Sparkles size={20} />
           </div>
-          <h1 className="text-2xl font-serif font-semibold tracking-tight text-emerald-950">EngelsizAI</h1>
+          <h1 className="text-xl md:text-2xl font-serif font-semibold tracking-tight text-emerald-950">EngelsizAI</h1>
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-6 space-y-8" aria-live="polite">
+      <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 md:space-y-8" aria-live="polite">
         <AnimatePresence>
           {messages.map(message => (
             <motion.div
@@ -93,20 +93,20 @@ export default function App() {
         <div ref={messagesEndRef} />
       </main>
 
-      <footer className="p-6 bg-white border-t border-stone-200/50">
-        <form onSubmit={handleSubmit} className="flex gap-3 max-w-4xl mx-auto">
+      <footer className="p-4 md:p-6 bg-white border-t border-stone-200/50">
+        <form onSubmit={handleSubmit} className="flex gap-2 md:gap-3 max-w-4xl mx-auto">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Size nasıl destek olabilirim?..."
-            className="flex-1 p-4 bg-stone-100 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-600/30 transition-all placeholder:text-stone-400"
+            className="flex-1 p-3 md:p-4 bg-stone-100 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-600/30 transition-all placeholder:text-stone-400"
             aria-label="Mesaj girişi"
           />
           <button
             type="submit"
             disabled={isLoading}
-            className="p-4 bg-emerald-700 text-white rounded-2xl hover:bg-emerald-800 disabled:opacity-50 transition-colors shadow-md hover:shadow-lg"
+            className="p-3 md:p-4 bg-emerald-700 text-white rounded-2xl hover:bg-emerald-800 disabled:opacity-50 transition-colors shadow-md hover:shadow-lg"
             aria-label="Gönder"
           >
             <Send size={20} />
