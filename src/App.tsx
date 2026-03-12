@@ -4,7 +4,7 @@
  */
 
 import { useState, useRef, useEffect, FormEvent } from 'react';
-import { chat } from './services/geminiService';
+import { createChat } from './services/geminiService';
 import { Send, Loader2, Bot, User, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
@@ -23,7 +23,12 @@ export default function App() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const chatRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chatRef.current = createChat();
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -33,7 +38,7 @@ export default function App() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !chatRef.current) return;
 
     const userMessage: Message = { id: Date.now().toString(), role: 'user', text: input };
     setMessages(prev => [...prev, userMessage]);
@@ -41,7 +46,7 @@ export default function App() {
     setIsLoading(true);
 
     try {
-      const streamResponse = await chat.sendMessageStream({ message: input });
+      const streamResponse = await chatRef.current.sendMessageStream({ message: input });
       let assistantMessage: Message = { id: (Date.now() + 1).toString(), role: 'assistant', text: '' };
       
       setMessages(prev => [...prev, assistantMessage]);
@@ -60,32 +65,32 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[var(--bg-warm)] text-[var(--text-stone)] font-sans">
+    <div className="flex flex-col h-[100dvh] bg-[var(--bg-app)] text-[var(--text-main)] font-sans">
       <Analytics />
-      <header className="p-4 md:p-6 bg-white/50 backdrop-blur-md border-b border-stone-200/50 shadow-sm flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-emerald-700 text-white rounded-2xl">
-            <Sparkles size={20} />
+      <header className="p-4 md:p-6 bg-[var(--bg-card)]/90 backdrop-blur-xl border-b border-[var(--border)] flex items-center justify-between sticky top-0 z-10 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-[var(--primary)] text-white rounded-3xl shadow-md">
+            <Sparkles size={24} />
           </div>
-          <h1 className="text-xl md:text-2xl font-serif font-semibold tracking-tight text-emerald-950">EngelsizAI</h1>
+          <h1 className="text-3xl font-display font-bold tracking-tight text-[var(--text-main)]">EngelsizAI</h1>
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 md:space-y-8" aria-live="polite">
+      <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 md:space-y-8 max-w-4xl mx-auto w-full" aria-live="polite">
         <AnimatePresence>
           {messages.map(message => (
             <motion.div
               key={message.id}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={`max-w-[90%] md:max-w-[75%] p-5 rounded-3xl shadow-sm ${message.role === 'user' ? 'bg-emerald-700 text-white rounded-br-lg' : 'bg-white border border-stone-200/60 rounded-bl-lg'}`}>
-                <div className="flex items-center gap-2 mb-2 opacity-60 text-xs font-medium uppercase tracking-wider">
-                  {message.role === 'assistant' ? <Bot size={14} /> : <User size={14} />}
+              <div className={`max-w-[90%] md:max-w-[80%] p-6 rounded-3xl shadow-[var(--shadow-soft)] ${message.role === 'user' ? 'bg-[var(--primary)] text-white rounded-br-none' : 'bg-[var(--bg-card)] border border-[var(--border)] rounded-bl-none'}`}>
+                <div className="flex items-center gap-3 mb-3 opacity-80 text-xs font-bold uppercase tracking-widest">
+                  {message.role === 'assistant' ? <Bot size={16} /> : <User size={16} />}
                   {message.role === 'assistant' ? 'EngelsizAI' : 'Siz'}
                 </div>
-                <div className="text-base leading-relaxed prose prose-stone prose-sm max-w-none">
+                <div className={`text-lg leading-relaxed prose prose-slate prose-lg max-w-none ${message.role === 'user' ? 'prose-invert' : ''}`}>
                   <Markdown remarkPlugins={[remarkGfm]}>{message.text}</Markdown>
                 </div>
               </div>
@@ -94,31 +99,31 @@ export default function App() {
         </AnimatePresence>
         {isLoading && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-            <div className="bg-white border border-stone-200/60 p-5 rounded-3xl rounded-bl-lg shadow-sm">
-              <Loader2 className="animate-spin text-emerald-700" size={24} />
+            <div className="bg-[var(--bg-card)] border border-[var(--border)] p-6 rounded-3xl rounded-bl-none shadow-[var(--shadow-soft)]">
+              <Loader2 className="animate-spin text-[var(--primary)]" size={24} />
             </div>
           </motion.div>
         )}
         <div ref={messagesEndRef} />
       </main>
 
-      <footer className="p-4 md:p-6 bg-white border-t border-stone-200/50">
-        <form onSubmit={handleSubmit} className="flex gap-2 md:gap-3 max-w-4xl mx-auto">
+      <footer className="p-6 bg-[var(--bg-card)] border-t border-[var(--border)]">
+        <form onSubmit={handleSubmit} className="flex gap-4 max-w-4xl mx-auto items-center">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Size nasıl destek olabilirim?..."
-            className="flex-1 p-3 md:p-4 bg-stone-100 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-600/30 transition-all placeholder:text-stone-400"
+            className="flex-1 p-5 bg-[var(--bg-app)] rounded-3xl border border-[var(--border)] focus:outline-none focus:ring-4 focus:ring-[var(--accent)]/10 transition-all placeholder:text-slate-400 font-medium text-lg"
             aria-label="Mesaj girişi"
           />
           <button
             type="submit"
             disabled={isLoading}
-            className="p-3 md:p-4 bg-emerald-700 text-white rounded-2xl hover:bg-emerald-800 disabled:opacity-50 transition-colors shadow-md hover:shadow-lg"
+            className="p-5 bg-[var(--primary)] text-white rounded-3xl hover:bg-[var(--primary)]/90 disabled:opacity-50 transition-all shadow-lg hover:shadow-xl active:scale-95"
             aria-label="Gönder"
           >
-            <Send size={20} />
+            <Send size={24} />
           </button>
         </form>
       </footer>

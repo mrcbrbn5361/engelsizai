@@ -1,21 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500&family=Outfit:wght@400;600;700&display=swap');
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
+  --font-sans: "Lexend", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
   :root {
-    --bg-warm: #FDFCF8;
-    --text-stone: #1C1917;
-    --emerald-deep: #065F46;
-    --amber-warm: #D97706;
+    /* Sıcak, insan odaklı ve erişilebilir palet */
+    --bg-app: #F8FAFC;
+    --bg-card: #FFFFFF;
+    --text-main: #1E293B;
+    --primary: #0F766E; /* Teal 700 - Güven verici ve sıcak */
+    --secondary: #E2E8F0; /* Slate 200 - Yumuşak AI mesaj arka planı */
+    --accent: #0D9488;
+    --border: #CBD5E1;
+    --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
   }
+  
   body {
-    background-color: var(--bg-warm);
-    color: var(--text-stone);
+    background-color: var(--bg-app);
+    color: var(--text-main);
+    background-image: radial-gradient(circle at 50% -20%, #CCFBF1 0%, transparent 70%);
   }
 }
