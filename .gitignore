@@ -1,8 +1,24 @@
+# Node
 node_modules/
-build/
+npm-debug.log
+.npm
+
+# Capacitor
+android/app/engelsizai-release.jks
+android/gradle.properties
+ios/
+
+# Keystore
+*.jks
+*.keystore
+*.base64
+
+# Build
+.out/
 dist/
-coverage/
+.next/
+build/
+
+# OS
 .DS_Store
-*.log
-.env*
-!.env.example
+Thumbs.db
