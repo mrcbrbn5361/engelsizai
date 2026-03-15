@@ -1,9 +1,9 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.miracpelinstudios.engelsizai',  // ✅ Paket ID
-  appName: 'EngelsizAI',                       // ✅ Uygulama Adı
-  webDir: 'out',                               // ✅ Next.js export çıktısı
+  appId: 'com.miracpelinstudios.engelsizai',
+  appName: 'EngelsizAI',
+  webDir: 'dist',        // ✅ Vite için 'dist' (Next.js için 'out')
   bundledWebRuntime: false,
   server: {
     androidScheme: 'https',
