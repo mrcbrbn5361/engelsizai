@@ -3,10 +3,11 @@ import { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.miracpelinstudios.engelsizai',
   appName: 'EngelsizAI',
-  webDir: 'dist',        // ✅ Vite için 'dist' (Next.js için 'out')
+  webDir: 'dist',
   server: {
     androidScheme: 'https',
-    cleartext: true
+    cleartext: true,
+    allowNavigation: ['*']
   },
   android: {
     buildOptions: {

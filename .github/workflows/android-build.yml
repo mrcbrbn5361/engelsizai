@@ -37,6 +37,14 @@ jobs:
       - name: Sync Android
         run: npx cap sync android
 
+      - name: Add Internet Permission
+        run: |
+          # AndroidManifest.xml'e internet izni ekle
+          sed -i '/<application/a\    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' android/app/src/main/AndroidManifest.xml
+          
+          # capacitor.config.json'u assets'e kopyala (CORS için)
+          cp capacitor.config.ts android/app/src/main/assets/capacitor.config.json 2>/dev/null || true
+
       - name: Setup signing
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > android/app/engelsizai-release.jks
@@ -46,7 +54,10 @@ jobs:
           echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> android/gradle.properties
 
       - name: Build Debug APK
-        run: cd android && ./gradlew assembleDebug
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
 
       - name: Find APK
         run: find android/app/build/outputs -name "*.apk" -print
