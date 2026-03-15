@@ -11,68 +11,49 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: ☕ Setup Java 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          distribution: zulu
+          java-version: 17
 
-      - name: 🟢 Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
 
-      - name: 📦 Install dependencies
+      - name: Install deps
         run: npm install
 
-      - name: 🔨 Build web app
+      - name: Build web
         run: npm run build
 
-      - name: ⚡ Add Capacitor Android
+      - name: Add Android
         run: npx --yes @capacitor/cli cap add android
 
-      - name: ⚡ Sync Capacitor
+      - name: Sync Android
         run: npx --yes @capacitor/cli cap sync android
 
-      - name: 🔑 Setup Keystore
+      - name: Setup signing
         run: |
-          # Keystore'u decode et
           echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > android/app/engelsizai-release.jks
-          
-          # gradle.properties'e signing bilgilerini ekle
           echo "STORE_FILE=engelsizai-release.jks" >> android/gradle.properties
           echo "STORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> android/gradle.properties
           echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> android/gradle.properties
           echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> android/gradle.properties
-          
-          # app/build.gradle dosyasında release buildType'ı bul ve signingConfig ekle
-          sed -i '/buildTypes {/a\        release {\n            signingConfig signingConfigs.release\n        }' android/app/build.gradle
 
-      - name: 🏗️ Build APK
-        run: |
-          cd android
-          chmod +x gradlew
-          # Debug önce dene (daha az hata)
-          ./gradlew assembleDebug --stacktrace || true
-          # Release build dene
-          ./gradlew assembleRelease --stacktrace || echo "Release failed, debug APK will be used"
+      - name: Build Debug APK
+        run: cd android && ./gradlew assembleDebug
 
-      - name: 🔍 Debug: APK dosyalarını bul
-        run: |
-          echo "🔎 APK arıyor..."
-          find android/app/build/outputs -name "*.apk" -type f 2>/dev/null | head -20
-          echo "📁 Klasörler:"
-          ls -la android/app/build/outputs/apk/ 2>/dev/null || echo "APK klasörü yok"
+      - name: Find APK
+        run: find android/app/build/outputs -name "*.apk" -print
 
-      - name: 📤 Upload APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: engelsizai-apk
-          path: |
-            android/app/build/outputs/apk/release/app-release.apk
-            android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
-          if-no-files-found: warn
