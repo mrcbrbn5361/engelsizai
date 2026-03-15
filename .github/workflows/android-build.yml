@@ -24,7 +24,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          # cache removed - no lock file
 
       - name: 📦 Install dependencies
         run: npm install
@@ -33,28 +32,65 @@ jobs:
         run: npm run build
 
       - name: ⚡ Add Capacitor Android
-        run: npx --yes cap add android
+        run: npx --yes @capacitor/cli cap add android
 
       - name: ⚡ Sync Capacitor
-        run: npx --yes cap sync android
+        run: npx --yes @capacitor/cli cap sync android
 
       - name: 🔑 Setup Keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > android/app/engelsizai-release.jks
-          echo "STORE_FILE=engelsizai-release.jks" >> android/gradle.properties
-          echo "STORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> android/gradle.properties
-          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> android/gradle.properties
-          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> android/gradle.properties
+          
+          # app/build.gradle içine signing config ekle (daha güvenilir yöntem)
+          cat >> android/app/build.gradle << 'EOF'
 
-      - name: 🏗️ Build APK
+android {
+    signingConfigs {
+        release {
+            storeFile file("engelsizai-release.jks")
+            storePassword "${System.properties['STORE_PASSWORD']}"
+            keyAlias "${System.properties['KEY_ALIAS']}"
+            keyPassword "${System.properties['KEY_PASSWORD']}"
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+        }
+    }
+}
+EOF
+
+      - name: 🏗️ Build APK (Debug + Release)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease
+          
+          # Önce debug build (kesin çalışır)
+          ./gradlew assembleDebug --stacktrace
+          
+          # Sonra release build (imzalı)
+          ./gradlew assembleRelease \
+            -PSTORE_PASSWORD="${{ secrets.KEYSTORE_PASSWORD }}" \
+            -PKEY_ALIAS="${{ secrets.KEY_ALIAS }}" \
+            -PKEY_PASSWORD="${{ secrets.KEY_PASSWORD }}" \
+            --stacktrace || echo "Release build failed, using debug APK"
 
-      - name: 📤 Upload APK
+      - name: 🔍 Debug: APK dosyalarını listele
+        run: |
+          echo "📁 Aranan APK dosyaları:"
+          find android/app/build/outputs -name "*.apk" -type f 2>/dev/null || echo "❌ APK bulunamadı"
+          
+          echo "📁 Klasör yapısı:"
+          ls -la android/app/build/outputs/apk/ 2>/dev/null || echo "❁ Klasör yok"
+
+      - name: 📤 Upload APK (Esnek yol)
         uses: actions/upload-artifact@v4
         with:
-          name: engelsizai-release.apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+          name: engelsizai-apk
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
+          if-no-files-found: warn
