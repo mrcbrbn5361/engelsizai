@@ -1,24 +1,21 @@
-# Node
+# Environment variables (güvenlik)
+.env*.local
+!.env.example
+
+# Vercel build dosyaları
+.vercel/
+
+# API route env dosyaları
+api/openrouter/*.env
+
+# Node modules
 node_modules/
-npm-debug.log
-.npm
+
+# Build outputs
+dist/
+out/
 
 # Capacitor
 android/app/engelsizai-release.jks
-android/gradle.properties
-ios/
-
-# Keystore
 *.jks
-*.keystore
 *.base64
-
-# Build
-.out/
-dist/
-.next/
-build/
-
-# OS
-.DS_Store
-Thumbs.db
