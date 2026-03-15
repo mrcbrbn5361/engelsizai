@@ -39,11 +39,14 @@ jobs:
 
       - name: Add Internet Permission
         run: |
-          # AndroidManifest.xml'e internet izni ekle
-          sed -i '/<application/a\    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' android/app/src/main/AndroidManifest.xml
+          # AndroidManifest.xml'de <application> tag'inden ÖNCE izinleri ekle
+          # Bu doğru yer: <manifest> içinde, <application> dışında
+          sed -i '/<application/i\    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
+          sed -i '/<application/i\    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' android/app/src/main/AndroidManifest.xml
           
-          # capacitor.config.json'u assets'e kopyala (CORS için)
-          cp capacitor.config.ts android/app/src/main/assets/capacitor.config.json 2>/dev/null || true
+          # Debug: Dosyayı kontrol et
+          echo "=== AndroidManifest.xml (ilk 30 satır) ==="
+          head -30 android/app/src/main/AndroidManifest.xml
 
       - name: Setup signing
         run: |
