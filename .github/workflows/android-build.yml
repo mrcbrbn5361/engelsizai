@@ -41,9 +41,14 @@ jobs:
         run: |
           sed -i '/<application/i\    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
           sed -i '/<application/i\    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' android/app/src/main/AndroidManifest.xml
-          
-          echo "=== AndroidManifest.xml (ilk 30 satır) ==="
-          head -30 android/app/src/main/AndroidManifest.xml
+
+      - name: Set Android SDK Versions (5.0 to 15)
+        run: |
+          sed -i 's/minSdkVersion.*/minSdkVersion 21/' android/app/build.gradle
+          sed -i 's/targetSdkVersion.*/targetSdkVersion 35/' android/app/build.gradle
+          sed -i 's/compileSdk.*/compileSdk 35/' android/app/build.gradle
+          echo "=== SDK Versions ==="
+          grep -E "(minSdkVersion|targetSdkVersion|compileSdk)" android/app/build.gradle
 
       - name: Setup signing
         run: |
