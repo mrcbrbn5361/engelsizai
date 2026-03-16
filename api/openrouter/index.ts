@@ -88,7 +88,7 @@ export default async function handler(
         // Forward each SSE line to client
         const lines = chunk.split('\n');
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
+          if (line.startsWith(' ')) {
             res.write(`${line}\n`);
           }
         }

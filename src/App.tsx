@@ -5,7 +5,7 @@
 
 import { useState, useRef, useEffect, FormEvent } from 'react';
 import { createChat } from './services/geminiService';
-import { Send, Loader2, Bot, User, Sparkles } from 'lucide-react';
+import { Send, Loader2, Bot, User, Sparkles, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -48,7 +48,6 @@ export default function App() {
     try {
       const streamResponse = await chatRef.current.sendMessageStream({ message: input });
       let assistantMessage: Message = { id: (Date.now() + 1).toString(), role: 'assistant', text: '' };
-      
       setMessages(prev => [...prev, assistantMessage]);
 
       for await (const chunk of streamResponse) {
@@ -64,6 +63,18 @@ export default function App() {
     }
   };
 
+  // ✅ YENİ: Sohbeti temizle + stream'i iptal et
+  const handleClearChat = () => {
+    // Önce devam eden stream'i iptal et
+    if (chatRef.current?.abort) {
+      chatRef.current.abort();
+    }
+    // Sonra mesajları temizle
+    setMessages([
+      { id: '1', role: 'assistant', text: 'Merhaba! Ben Feyzullah Kıyıklık Engelliler Sarayı öğrencisi Miraç Birben tarafından geliştirilen bir Yapay Zeka Projesiyim. Feyzullah Kıyıklık Engelliler Sarayı ile ilgili size nasıl yardımcı olabilirim? 😊' }
+    ]);
+  };
+
   return (
     <div className="flex flex-col h-[100dvh] bg-[var(--bg-app)] text-[var(--text-main)] font-sans">
       <Analytics />
@@ -74,11 +85,18 @@ export default function App() {
           </div>
           <h1 className="text-3xl font-display font-bold tracking-tight text-[var(--text-main)]">EngelsizAI</h1>
         </div>
+        {/* ✅ Sohbeti Temizle Butonu */}
+        <button
+          onClick={handleClearChat}
+          className="p-3 bg-red-500/10 text-red-500 rounded-3xl hover:bg-red-500/20 transition-all"
+          aria-label="Sohbeti Temizle"
+        >
+          <Trash2 size={20} />
+        </button>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 md:space-y-8 max-w-4xl mx-auto w-full" aria-live="polite">
-        <AnimatePresence>
-          {messages.map(message => (
+        <AnimatePresence>          {messages.map(message => (
             <motion.div
               key={message.id}
               initial={{ opacity: 0, y: 10, scale: 0.98 }}
@@ -127,6 +145,5 @@ export default function App() {
           </button>
         </form>
       </footer>
-    </div>
-  );
+    </div>  );
 }

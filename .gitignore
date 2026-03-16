@@ -14,8 +14,17 @@ node_modules/
 # Build outputs
 dist/
 out/
+.next/
 
 # Capacitor
 android/app/engelsizai-release.jks
 *.jks
 *.base64
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
