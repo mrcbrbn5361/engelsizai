@@ -40,11 +40,12 @@ jobs:
 
       - name: Set Android SDK Versions
         run: |
+          # compileSdk 33 (sistemde yüklü olan), target 35 (yeni nesil davranış)
           sed -i 's/minSdkVersion.*/minSdkVersion 22/' android/app/build.gradle
           sed -i 's/targetSdkVersion.*/targetSdkVersion 35/' android/app/build.gradle
-          sed -i 's/compileSdk.*/compileSdk 35/' android/app/build.gradle
+          sed -i 's/compileSdk.*/compileSdk 33/' android/app/build.gradle
           
-          # Manifest düzenlemeleri
+          # Manifest çakışmalarını önle
           sed -i 's/<manifest/<manifest xmlns:tools="http:\/\/schemas.android.com\/tools"/' android/app/src/main/AndroidManifest.xml
           sed -i '/<application/i\    <uses-sdk tools:overrideLibrary="com.getcapacitor.android" />' android/app/src/main/AndroidManifest.xml
 
