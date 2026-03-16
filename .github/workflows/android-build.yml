@@ -14,11 +14,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Java 21
+      # Hata çözümü: Gradle 8.0.2, Java 21 ile uyumlu değil, Java 17 kullanıyoruz.
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '17'
 
       - name: Setup Node
         uses: actions/setup-node@v4
