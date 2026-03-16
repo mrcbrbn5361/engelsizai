@@ -26,7 +26,7 @@ export const createChat = () => {
               { role: "system", content: systemInstruction },
               { role: "user", content: message }
             ],
-            stream: false,  // ❌ Streaming KAPALI
+            stream: false,
             temperature: 0.7,
             max_tokens: 2048
           }),
@@ -44,8 +44,12 @@ export const createChat = () => {
         
         console.log('✅ Full response:', content.substring(0, 100));
         
-        // ✅ Tüm cevabı tek seferde yield et
-        yield { text: content };
+        // ✅ Async iterator döndür (App.tsx'teki for await...of ile uyumlu)
+        return {
+          async *[Symbol.asyncIterator]() {
+            yield { text: content };
+          }
+        };
         
       } catch (error: any) {
         console.error('Fetch error:', error);
