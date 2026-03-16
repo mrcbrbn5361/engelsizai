@@ -9,20 +9,12 @@ import { SYSTEM_PROMPT } from "../constants/systemPrompt";
 const API_BASE = 'https://engelsizai.vercel.app';
 
 export const createChat = () => {
-  let abortController: AbortController | null = null;
-
   const currentTime = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
   const systemInstruction = `${SYSTEM_PROMPT}\n\nŞu anki saat: ${currentTime}`;
 
   return {
     sendMessageStream: async ({ message }: { message: string }) => {
-      // Önceki isteği iptal et
-      if (abortController) abortController.abort();
-      abortController = new AbortController();
-
       try {
-        console.log('🔗 Fetching:', `${API_BASE}/api/openrouter`);
-        
         const response = await fetch(`${API_BASE}/api/openrouter`, {
           method: "POST",
           headers: { 
@@ -40,14 +32,14 @@ export const createChat = () => {
             max_tokens: 2048
           }),
           mode: 'cors',
-          credentials: 'omit',
-          signal: abortController.signal
+          credentials: 'omit'
         });
 
         if (!response.ok) {
           const errorBody = await response.json().catch(() => ({}));
           throw new Error(`Proxy API error: ${response.status} - ${errorBody.error || response.statusText}`);
         }
+
         const reader = response.body?.getReader();
         if (!reader) throw new Error('ReadableStream not supported');
         
@@ -55,87 +47,42 @@ export const createChat = () => {
 
         return {
           [Symbol.asyncIterator]: async function* () {
-            let buffer = '';
-            
             try {
               while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
                 
-                // Chunk'ı decode et ve buffer'a ekle
-                buffer += decoder.decode(value, { stream: true });
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split("\n");
                 
-                // Satırlara ayır
-                const lines = buffer.split('\n');
-                // Son satırı buffer'da tut (yarım gelebilir)
-                buffer = lines.pop() || '';
-                
-                for (const rawLine of lines) {
-                  const line = rawLine.trim();
-                  
-                  // OpenRouter SSE format: "data: {...}"
-                  if (!line.startsWith('data:')) continue;
-                  
-                  const data = line.slice(5).trim(); // "data: " kısmını at
-                  if (data === '[DONE]' || !data) continue;
-                  
-                  try {
-                    const json = JSON.parse(data);
-                    const content = json.choices?.[0]?.delta?.content || '';
-                    if (content) {
-                      console.log('✨ Yield:', content.substring(0, 50));
-                      yield { text: content };
-                    }
-                  } catch (e) {
-                    console.error('❌ JSON parse error:', e, 'Data:', data);
-                    continue;
-                  }
-                }
-              }
-              
-              // Buffer'da kalan son veriyi işle
-              if (buffer.trim()) {
-                const line = buffer.trim();
-                if (line.startsWith('data:')) {                  const data = line.slice(5).trim();
-                  if (data && data !== '[DONE]') {
+                for (const line of lines) {
+                  const trimmedLine = line.trim();
+                  if (trimmedLine.startsWith("data:")) {
+                    const data = trimmedLine.slice(5).trim();
+                    if (data === "[DONE]" || !data) continue;
+                    
                     try {
                       const json = JSON.parse(data);
-                      const content = json.choices?.[0]?.delta?.content || '';
+                      const content = json.choices?.[0]?.delta?.content || "";
                       if (content) yield { text: content };
-                    } catch (e) { /* ignore */ }
+                    } catch (e) {
+                      continue;
+                    }
                   }
                 }
               }
-              
             } catch (err: any) {
-              if (err.name === 'AbortError') {
-                console.log('🛑 Stream aborted');
-                return;
-              }
-              console.error('Stream error:', err);
+              console.error('Stream read error:', err);
               throw err;
             }
           }
         };
-        
       } catch (error: any) {
-        if (error.name === 'AbortError') {
-          console.log('🛑 Fetch aborted');
-          throw new Error('Request cancelled');
-        }
         console.error('Fetch error:', error);
         if (error.message?.includes('Failed to fetch') || error.name === 'TypeError') {
           throw new Error('Network error: Check internet connection');
         }
         throw error;
-      }
-    },
-
-    abort: () => {
-      if (abortController) {
-        abortController.abort();
-        abortController = null;
-        console.log('🛑 Chat aborted');
       }
     }
   };

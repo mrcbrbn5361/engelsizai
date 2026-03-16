@@ -39,11 +39,9 @@ jobs:
 
       - name: Add Internet Permission
         run: |
-          # AndroidManifest.xml'de <application> tag'inden ÖNCE izinleri ekle
           sed -i '/<application/i\    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
           sed -i '/<application/i\    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' android/app/src/main/AndroidManifest.xml
           
-          # Debug: Dosyayı kontrol et
           echo "=== AndroidManifest.xml (ilk 30 satır) ==="
           head -30 android/app/src/main/AndroidManifest.xml
 
