@@ -25,11 +25,6 @@ jobs:
         with:
           node-version: 20
 
-      # 🚀 YENİ ADIM: Eksik SDK paketlerini (36 dahil) yükle
-      - name: Install Android SDK Packages
-        run: |
-          yes | sdkmanager "platforms;android-36" "build-tools;35.0.0"
-
       - name: Install deps
         run: npm install
 
@@ -44,12 +39,10 @@ jobs:
 
       - name: Set Android SDK Versions
         run: |
-          # 22 (Android 5.1) - 36 (Android 16)
+          # SDK yapılandırması - SDK 33 varsayılan yüklü gelir, 36 hedefleyebiliriz
           sed -i 's/minSdkVersion.*/minSdkVersion 22/' android/app/build.gradle
           sed -i 's/targetSdkVersion.*/targetSdkVersion 36/' android/app/build.gradle
-          sed -i 's/compileSdk.*/compileSdk 36/' android/app/build.gradle
-          
-          echo "android.suppressUnsupportedCompileSdk=36" >> android/gradle.properties
+          sed -i 's/compileSdk.*/compileSdk 33/' android/app/build.gradle
           
           # Manifest düzenlemeleri
           sed -i 's/<manifest/<manifest xmlns:tools="http:\/\/schemas.android.com\/tools"/' android/app/src/main/AndroidManifest.xml
