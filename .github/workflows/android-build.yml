@@ -14,7 +14,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Hata çözümü: Gradle 8.0.2, Java 21 ile uyumlu değil, Java 17 kullanıyoruz.
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
@@ -44,12 +43,21 @@ jobs:
             sed -i '/<application/i\    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' android/app/src/main/AndroidManifest.xml
           fi
 
-      - name: Set Android SDK Versions (5.0 to 16.0)
+      - name: Set Android SDK Versions (5.1 to 16.0)
         run: |
-          sed -i 's/minSdkVersion.*/minSdkVersion 21/' android/app/build.gradle
+          # SDK yapılandırması
+          sed -i 's/minSdkVersion.*/minSdkVersion 22/' android/app/build.gradle
           sed -i 's/targetSdkVersion.*/targetSdkVersion 36/' android/app/build.gradle
           sed -i 's/compileSdk.*/compileSdk 35/' android/app/build.gradle
+          
+          # Gradle properties güncellemeleri
           echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
+          
+          # Manifest düzenlemeleri (minSdk çakışmasını aşmak için)
+          sed -i 's/<manifest/<manifest xmlns:tools="http:\/\/schemas.android.com\/tools"/' android/app/src/main/AndroidManifest.xml
+          sed -i '/<application/i\    <uses-sdk tools:overrideLibrary="com.getcapacitor.android" />' android/app/src/main/AndroidManifest.xml
+          
+          grep -E "(minSdkVersion|targetSdkVersion|compileSdk)" android/app/build.gradle
 
       - name: Setup signing
         run: |
