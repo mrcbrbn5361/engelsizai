@@ -39,27 +39,18 @@ jobs:
 
       - name: Add Network State Permission
         run: |
-          # Capacitor zaten INTERNET iznini ekler, sadece ACCESS_NETWORK_STATE ekle
           if ! grep -q "ACCESS_NETWORK_STATE" android/app/src/main/AndroidManifest.xml; then
             sed -i '/<application/i\    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' android/app/src/main/AndroidManifest.xml
           fi
           echo "=== AndroidManifest.xml permissions ==="
           grep "uses-permission" android/app/src/main/AndroidManifest.xml
 
-      - name: Set Android SDK Versions (5.1 to 16)
+      - name: Set Android SDK Versions (5.1 to 15)
         run: |
-          # minSdk 22 (Capacitor gereksinimi - Android 5.1)
           sed -i 's/minSdkVersion.*/minSdkVersion 22/' android/app/build.gradle
-          
-          # targetSdk 36 (Android 16 - en güncel)
-          sed -i 's/targetSdkVersion.*/targetSdkVersion 36/' android/app/build.gradle
-          
-          # compileSdk 36 (Android 16 SDK)
-          sed -i 's/compileSdk.*/compileSdk 36/' android/app/build.gradle
-          
-          # Uyarıyı sustur (compileSdk 36 için)
-          echo "android.suppressUnsupportedCompileSdk=36" >> android/gradle.properties
-          
+          sed -i 's/targetSdkVersion.*/targetSdkVersion 35/' android/app/build.gradle
+          sed -i 's/compileSdk.*/compileSdk 35/' android/app/build.gradle
+          echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
           echo "=== SDK Versions ==="
           grep -E "(minSdkVersion|targetSdkVersion|compileSdk)" android/app/build.gradle
 
