@@ -1,70 +1,10 @@
-name: 🤖 Build Android APK
-
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-
-jobs:
-  build-android:
-    name: Build APK
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install deps
-        run: npm install
-
-      - name: Build web
-        run: npm run build
-
-      - name: Add Android
-        run: npx cap add android
-
-      - name: Sync Android
-        run: npx cap sync android
-
-      - name: Set Android SDK Versions
+- name: Set Android SDK Versions
         run: |
-          # SDK yapılandırması - SDK 33 varsayılan yüklü gelir, 36 hedefleyebiliriz
+          # Android 15 (API 35) target ve compile sürümü
           sed -i 's/minSdkVersion.*/minSdkVersion 22/' android/app/build.gradle
-          sed -i 's/targetSdkVersion.*/targetSdkVersion 36/' android/app/build.gradle
-          sed -i 's/compileSdk.*/compileSdk 33/' android/app/build.gradle
+          sed -i 's/targetSdkVersion.*/targetSdkVersion 35/' android/app/build.gradle
+          sed -i 's/compileSdk.*/compileSdk 35/' android/app/build.gradle
           
-          # Manifest düzenlemeleri
+          # Manifest düzenlemeleri (Çakışmaları önlemek için)
           sed -i 's/<manifest/<manifest xmlns:tools="http:\/\/schemas.android.com\/tools"/' android/app/src/main/AndroidManifest.xml
           sed -i '/<application/i\    <uses-sdk tools:overrideLibrary="com.getcapacitor.android" />' android/app/src/main/AndroidManifest.xml
-
-      - name: Setup signing
-        run: |
-          echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > android/app/engelsizai-release.jks
-          echo "STORE_FILE=engelsizai-release.jks" >> android/gradle.properties
-          echo "STORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> android/gradle.properties
-          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> android/gradle.properties
-          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> android/gradle.properties
-
-      - name: Build Debug APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: engelsizai-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
