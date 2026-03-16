@@ -8,12 +8,6 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
     cleartext: true,
     allowNavigation: ['*']
-  },
-  android: {
-    buildOptions: {
-      keystorePath: 'engelsizai-release.jks',
-      keystoreAlias: 'engelsizai-key'
-    }
   }
 };
 
