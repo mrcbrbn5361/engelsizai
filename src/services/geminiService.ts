@@ -22,7 +22,7 @@ export const createChat = () => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              model: "google/gemini-2.0-flash-lite-preview-02-05:free", // Daha stabil bir model ile güncellendi
+              model: "stepfun/step-3.5-flash:free",
               messages: [
                 { role: "system", content: systemInstruction },
                 { role: "user", content: message }
@@ -35,18 +35,19 @@ export const createChat = () => {
             credentials: 'omit'
           });
 
+          // Eğer 429 hatası (Too Many Requests) aldıysak bekle ve tekrar dene
           if (response.status === 429) {
-            // Eğer limit aşıldıysa (429) bekle ve devam et
             attempt++;
             if (attempt <= maxRetries) {
-              await new Promise(resolve => setTimeout(resolve, 3000)); // 3 saniye bekle
+              // 3 saniye bekle
+              await new Promise(resolve => setTimeout(resolve, 3000));
               continue;
             }
           }
 
           if (!response.ok) {
             const errorBody = await response.json().catch(() => ({}));
-            throw new Error(`API error: ${response.status} - ${errorBody.error || response.statusText}`);
+            throw new Error(`API error: ${response.status} - ${errorBody.error?.message || response.statusText}`);
           }
 
           const data = await response.json();
@@ -59,14 +60,13 @@ export const createChat = () => {
           };
           
         } catch (error: any) {
-          if (attempt === maxRetries) {
+          if (attempt >= maxRetries) {
             console.error('Fetch error:', error);
-            if (error.message?.includes('Failed to fetch') || error.name === 'TypeError') {
-              throw new Error('Ağ hatası: İnternet bağlantınızı kontrol edin.');
-            }
             throw error;
           }
           attempt++;
+          // Hata durumunda da kısa bir bekleme ekleyelim
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
       throw new Error('Sunucu çok yoğun, lütfen birazdan tekrar deneyin.');
