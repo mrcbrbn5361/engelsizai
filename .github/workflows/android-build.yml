@@ -25,6 +25,11 @@ jobs:
         with:
           node-version: 20
 
+      # 🚀 YENİ ADIM: Eksik SDK paketlerini (36 dahil) yükle
+      - name: Install Android SDK Packages
+        run: |
+          yes | sdkmanager "platforms;android-36" "build-tools;35.0.0"
+
       - name: Install deps
         run: npm install
 
@@ -37,27 +42,18 @@ jobs:
       - name: Sync Android
         run: npx cap sync android
 
-      - name: Add Network State Permission
+      - name: Set Android SDK Versions
         run: |
-          if ! grep -q "ACCESS_NETWORK_STATE" android/app/src/main/AndroidManifest.xml; then
-            sed -i '/<application/i\    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' android/app/src/main/AndroidManifest.xml
-          fi
-
-      - name: Set Android SDK Versions (5.1 to 16.0)
-        run: |
-          # SDK yapılandırması
+          # 22 (Android 5.1) - 36 (Android 16)
           sed -i 's/minSdkVersion.*/minSdkVersion 22/' android/app/build.gradle
           sed -i 's/targetSdkVersion.*/targetSdkVersion 36/' android/app/build.gradle
-          sed -i 's/compileSdk.*/compileSdk 35/' android/app/build.gradle
+          sed -i 's/compileSdk.*/compileSdk 36/' android/app/build.gradle
           
-          # Gradle properties güncellemeleri
-          echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
+          echo "android.suppressUnsupportedCompileSdk=36" >> android/gradle.properties
           
-          # Manifest düzenlemeleri (minSdk çakışmasını aşmak için)
+          # Manifest düzenlemeleri
           sed -i 's/<manifest/<manifest xmlns:tools="http:\/\/schemas.android.com\/tools"/' android/app/src/main/AndroidManifest.xml
           sed -i '/<application/i\    <uses-sdk tools:overrideLibrary="com.getcapacitor.android" />' android/app/src/main/AndroidManifest.xml
-          
-          grep -E "(minSdkVersion|targetSdkVersion|compileSdk)" android/app/build.gradle
 
       - name: Setup signing
         run: |
