@@ -1,0 +1,85 @@
+name: 🤖 Build Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build APK
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 17
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps
+        run: npm install
+
+      - name: Build web
+        run: npm run build
+
+      - name: Add Android
+        run: npx cap add android
+
+      - name: Sync Android
+        run: npx cap sync android
+
+      - name: Add Network State Permission
+        run: |
+          if ! grep -q "ACCESS_NETWORK_STATE" android/app/src/main/AndroidManifest.xml; then
+            sed -i '/<application/i\    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' android/app/src/main/AndroidManifest.xml
+          fi
+
+      - name: Set Android SDK Versions (5.1 to 16)
+        run: |
+          # minSdk 22 (Android 5.1) - Capacitor gereksinimi
+          sed -i 's/minSdkVersion.*/minSdkVersion 22/' android/app/build.gradle
+          
+          # targetSdk 36 (Android 16) - Uygulama Android 16'yı hedefler
+          sed -i 's/targetSdkVersion.*/targetSdkVersion 36/' android/app/build.gradle
+          
+          # compileSdk 33 - GitHub Actions sunucularında en stabil derleme SDK'sı
+          # (Android 16 hedefi için compileSdk 33 yeterlidir)
+          sed -i 's/compileSdk.*/compileSdk 33/' android/app/build.gradle
+          
+          echo "android.suppressUnsupportedCompileSdk=33" >> android/gradle.properties
+          
+          echo "=== SDK Versions ==="
+          grep -E "(minSdkVersion|targetSdkVersion|compileSdk)" android/app/build.gradle
+
+      - name: Setup signing
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > android/app/engelsizai-release.jks
+          echo "STORE_FILE=engelsizai-release.jks" >> android/gradle.properties
+          echo "STORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> android/gradle.properties
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> android/gradle.properties
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> android/gradle.properties
+
+      - name: Build Debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Find APK
+        run: find android/app/build/outputs -name "*.apk" -print
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: engelsizai-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
