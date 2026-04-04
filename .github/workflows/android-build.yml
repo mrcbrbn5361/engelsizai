@@ -32,10 +32,10 @@ jobs:
         run: npm run build
 
       - name: Add Android
-        run: npx cap add android
+        run: npx --yes @capacitor/cli@5.7.0 add android
 
       - name: Sync Android
-        run: npx cap sync android
+        run: npx --yes @capacitor/cli@5.7.0 sync android
 
       - name: Add Network State Permission
         run: |
@@ -45,19 +45,10 @@ jobs:
 
       - name: Set Android SDK Versions (5.1 to 16)
         run: |
-          # minSdk 22 (Android 5.1) - Capacitor gereksinimi
           sed -i 's/minSdkVersion.*/minSdkVersion 22/' android/app/build.gradle
-          
-          # targetSdk 36 (Android 16) - Uygulama Android 16'yı hedefler
           sed -i 's/targetSdkVersion.*/targetSdkVersion 36/' android/app/build.gradle
-          
-          # compileSdk 33 - GitHub Actions sunucularında en stabil derleme SDK'sı
-          # (Android 16 hedefi için compileSdk 33 yeterlidir)
           sed -i 's/compileSdk.*/compileSdk 33/' android/app/build.gradle
-          
           echo "android.suppressUnsupportedCompileSdk=33" >> android/gradle.properties
-          
-          echo "=== SDK Versions ==="
           grep -E "(minSdkVersion|targetSdkVersion|compileSdk)" android/app/build.gradle
 
       - name: Setup signing
