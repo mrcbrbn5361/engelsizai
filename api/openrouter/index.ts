@@ -27,7 +27,7 @@ export default async function handler(
   }
 
   try {
-    const { messages, model, temperature, max_tokens, stream } = req.body;
+    const { messages, model, temperature, max_tokens } = req.body;
     const apiKey = process.env.OPENROUTER_API_KEY;
     
     if (!apiKey) {
@@ -36,7 +36,6 @@ export default async function handler(
       return res.end(JSON.stringify({ error: 'Server configuration error' }));
     }
 
-    // Non-streaming response (stabil)
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -46,7 +45,6 @@ export default async function handler(
         'X-Title': 'EngelsizAI',
       },
       body: JSON.stringify({
-        // ✅ YENİ MODEL: Qwen 3.6 Plus (Free)
         model: model || 'qwen/qwen3.6-plus:free',
         messages: messages || [],
         temperature: temperature || 0.7,

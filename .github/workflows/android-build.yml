@@ -31,8 +31,24 @@ jobs:
       - name: Build web
         run: npm run build
 
-      - name: Add Android
-        run: npx --yes @capacitor/cli@5.7.0 add android
+      - name: Add Android Platform
+        run: |
+          # @capacitor/android'u yükle
+          npm install @capacitor/android@5.7.0 --save
+          
+          # capacitor.config.json yoksa veya appId eksikse oluştur
+          if [ ! -f capacitor.config.json ] || ! grep -q '"appId"' capacitor.config.json; then
+            echo "⚠️ Creating fallback capacitor.config.json"
+            cat > capacitor.config.json << 'CONF'
+{
+  "appId": "com.miracpelinstudios.engelsizai",
+  "appName": "EngelsizAI",
+  "webDir": "dist"
+}
+CONF
+          fi
+          
+          npx --yes @capacitor/cli@5.7.0 add android
 
       - name: Sync Android
         run: npx --yes @capacitor/cli@5.7.0 sync android
@@ -51,7 +67,7 @@ jobs:
           echo "android.suppressUnsupportedCompileSdk=33" >> android/gradle.properties
           grep -E "(minSdkVersion|targetSdkVersion|compileSdk)" android/app/build.gradle
 
-      - name: Setup signing
+      - name: Setup Signing
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > android/app/engelsizai-release.jks
           echo "STORE_FILE=engelsizai-release.jks" >> android/gradle.properties
