@@ -1,30 +1,8 @@
-# Environment variables (güvenlik)
-.env*.local
-!.env.example
-
-# Vercel build dosyaları
-.vercel/
-
-# API route env dosyaları
-api/openrouter/*.env
-
-# Node modules
 node_modules/
-
-# Build outputs
+build/
 dist/
-out/
-.next/
-
-# Capacitor
-android/app/engelsizai-release.jks
-*.jks
-*.base64
-
-# OS
+coverage/
 .DS_Store
-Thumbs.db
-
-# Logs
 *.log
-npm-debug.log*
+.env*
+!.env.example

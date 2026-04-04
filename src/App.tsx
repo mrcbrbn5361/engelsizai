@@ -5,7 +5,7 @@
 
 import { useState, useRef, useEffect, FormEvent } from 'react';
 import { createChat } from './services/geminiService';
-import { Send, Loader2, Bot, User, Sparkles } from 'lucide-react';
+import { Send, Loader2, Bot, User, Sparkles, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -18,13 +18,15 @@ interface Message {
 }
 
 export default function App() {
-  const [messages, setMessages] = useState<Message[]>([
+  const initialMessages: Message[] = [
     { id: '1', role: 'assistant', text: 'Merhaba! Ben Feyzullah Kıyıklık Engelliler Sarayı öğrencisi Miraç Birben tarafından geliştirilen bir Yapay Zeka Projesiyim. Feyzullah Kıyıklık Engelliler Sarayı ile ilgili size nasıl yardımcı olabilirim? 😊' }
-  ]);
+  ];
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const chatRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     chatRef.current = createChat();
@@ -36,6 +38,13 @@ export default function App() {
 
   useEffect(scrollToBottom, [messages]);
 
+  const handleClearChat = () => {
+    abortControllerRef.current?.abort();
+    setMessages(initialMessages);
+    chatRef.current = createChat();
+    setIsLoading(false);
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading || !chatRef.current) return;
@@ -45,21 +54,32 @@ export default function App() {
     setInput('');
     setIsLoading(true);
 
+    abortControllerRef.current = new AbortController();
+
     try {
-      const streamResponse = await chatRef.current.sendMessageStream({ message: input });
+      const streamResponse = await chatRef.current.sendMessageStream({ 
+        message: input, 
+        signal: abortControllerRef.current.signal 
+      });
       let assistantMessage: Message = { id: (Date.now() + 1).toString(), role: 'assistant', text: '' };
+      
       setMessages(prev => [...prev, assistantMessage]);
 
       for await (const chunk of streamResponse) {
         assistantMessage = { ...assistantMessage, text: assistantMessage.text + (chunk.text || '') };
         setMessages(prev => prev.map(m => m.id === assistantMessage.id ? assistantMessage : m));
       }
-    } catch (error) {
-      console.error('Chat error:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      setMessages(prev => [...prev, { id: 'error', role: 'assistant', text: `Üzgünüm, bir hata oluştu: ${errorMessage}` }]);
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('Chat aborted by user');
+      } else {
+        console.error('Chat error:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        setMessages(prev => [...prev, { id: 'error', role: 'assistant', text: `Üzgünüm, bir hata oluştu: ${errorMessage}` }]);
+      }
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -73,6 +93,13 @@ export default function App() {
           </div>
           <h1 className="text-3xl font-display font-bold tracking-tight text-[var(--text-main)]">EngelsizAI</h1>
         </div>
+        <button
+          onClick={handleClearChat}
+          className="p-3 text-[var(--text-main)] hover:bg-[var(--bg-app)] rounded-full transition-all"
+          aria-label="Sohbeti temizle"
+        >
+          <Trash2 size={24} />
+        </button>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 md:space-y-8 max-w-4xl mx-auto w-full" aria-live="polite">
@@ -96,7 +123,8 @@ export default function App() {
             </motion.div>
           ))}
         </AnimatePresence>
-        {isLoading && (          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
+        {isLoading && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
             <div className="bg-[var(--bg-card)] border border-[var(--border)] p-6 rounded-3xl rounded-bl-none shadow-[var(--shadow-soft)]">
               <Loader2 className="animate-spin text-[var(--primary)]" size={24} />
             </div>
