@@ -33,21 +33,10 @@ jobs:
 
       - name: Add Android Platform
         run: |
-          # @capacitor/android'u yükle
           npm install @capacitor/android@5.7.0 --save
-          
-          # capacitor.config.json yoksa veya appId eksikse oluştur
           if [ ! -f capacitor.config.json ] || ! grep -q '"appId"' capacitor.config.json; then
-            echo "⚠️ Creating fallback capacitor.config.json"
-            cat > capacitor.config.json << 'CONF'
-{
-  "appId": "com.miracpelinstudios.engelsizai",
-  "appName": "EngelsizAI",
-  "webDir": "dist"
-}
-CONF
+            echo '{"appId":"com.miracpelinstudios.engelsizai","appName":"EngelsizAI","webDir":"dist"}' > capacitor.config.json
           fi
-          
           npx --yes @capacitor/cli@5.7.0 add android
 
       - name: Sync Android
