@@ -52,7 +52,8 @@ export const createChat = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "qwen/qwen3.6-plus:free",
+            // ✅ MODEL: Google Gemma 4 (Free)
+            model: "google/gemma-4-31b-it:free",
             messages: [
               { role: "system", content: systemInstruction },
               { role: "user", content: message }
