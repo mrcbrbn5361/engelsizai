@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.3-70b-instruct:free',
+        model: 'nvidia/nemotron-3-super-120b-a12b:free',
         messages: [{ role: 'user', content: message }],
         stream: false,
       }),

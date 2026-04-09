@@ -40,28 +40,30 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div className="flex flex-col h-[100dvh] bg-gray-100 overflow-hidden">
       <Analytics />
-      <header className="p-4 bg-white border-b flex items-center gap-3 shadow-sm sticky top-0 z-10">
+      <header className="flex-none p-4 bg-white border-b flex items-center gap-3 shadow-sm z-10">
         <div className="p-2 bg-blue-600 text-white rounded-lg">
           <Sparkles size={20} />
         </div>
         <h1 className="text-xl font-bold text-gray-900">EngelsizAI</h1>
       </header>
-      <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
-        <AnimatePresence>
-          {messages.map(m => (
-            <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`p-4 rounded-2xl max-w-[90%] md:max-w-[70%] shadow-sm ${m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200'}`}>
-                <div className="prose prose-sm md:prose-base max-w-none">
-                  <Markdown remarkPlugins={[remarkGfm]}>{m.text}</Markdown>
+      <main className="flex-1 overflow-y-auto p-4 md:p-6 flex justify-center">
+        <div className="w-full max-w-3xl space-y-6">
+          <AnimatePresence>
+            {messages.map(m => (
+              <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`p-4 rounded-2xl max-w-[90%] shadow-sm ${m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200'}`}>
+                  <div className="prose prose-sm md:prose-base max-w-none">
+                    <Markdown remarkPlugins={[remarkGfm]}>{m.text}</Markdown>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
       </main>
-      <footer className="p-4 bg-white border-t">
+      <footer className="flex-none p-4 bg-white border-t">
         <form onSubmit={handleSubmit} className="flex gap-2 max-w-3xl mx-auto">
           <input 
             value={input} 
