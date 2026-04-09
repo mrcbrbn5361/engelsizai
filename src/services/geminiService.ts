@@ -11,8 +11,8 @@ export const createChat = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Provider error:', errorData);
-        throw new Error(errorData.error?.message || errorData.message || errorData.error || `Hata: ${response.status}`);
+        console.error('Provider error details:', errorData);
+        throw new Error(typeof errorData === 'object' ? JSON.stringify(errorData) : String(errorData));
       }
       const data = await response.json();
       
