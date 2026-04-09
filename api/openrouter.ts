@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemma-4-31b-it:free',
+        model: 'openai/gpt-oss-120b:free',
         messages: [
           { role: 'system', content: `Sen "EngelsizAI" adlı yapay zeka asistanısın.
 Kurum: Feyzullah Kıyıklık Engelliler Sarayı (Bağcılar Belediyesi).
