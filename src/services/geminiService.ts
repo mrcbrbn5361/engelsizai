@@ -18,8 +18,8 @@ export const createChat = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            // ✅ YENİ MODEL
-            model: "minimax/minimax-m2.5:free",
+            // ✅ GÜNCEL MODEL
+            model: "google/gemma-3-27b-it:free",
             messages: [
               { role: "system", content: systemInstruction },
               { role: "user", content: message }
