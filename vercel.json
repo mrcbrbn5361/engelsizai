@@ -1,13 +1,6 @@
 {
-  "builds": [
-    { "src": "package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } },
-    { "src": "api/**/*.ts", "use": "@vercel/node" }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "api/$1" },
-    { "src": "/(.*)", "dest": "dist/$1" }
-  ],
-  "env": {
-    "OPENROUTER_API_KEY": "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"
-  }
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/(.*)", "destination": "/dist/$1" }
+  ]
 }

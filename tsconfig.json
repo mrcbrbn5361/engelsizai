@@ -21,7 +21,6 @@
       ]
     },
     "allowImportingTsExtensions": true,
-    "noEmit": true,
-    "types": ["@vercel/node", "node"]
+    "noEmit": true
   }
 }
