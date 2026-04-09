@@ -50,8 +50,13 @@ export default function App() {
     } catch (error) {      console.error('Chat error:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       
-      // ✅ Rate limit uyarısı kaldırıldı. Sadece gelen hata gösteriliyor.
-      setMessages(prev => [...prev, { id: 'error', role: 'assistant', text: `Hata: ${errorMessage}` }]);
+      // ✅ Temiz hata mesajı (429 için özel ama bekleme tavsiyesi YOK)
+      let displayMessage = `Hata: ${errorMessage}`;
+      if (errorMessage.includes('429')) {
+        displayMessage = 'Sunucu yoğun. Lütfen tekrar deneyin.';
+      }
+      
+      setMessages(prev => [...prev, { id: 'error', role: 'assistant', text: displayMessage }]);
     } finally {
       setIsLoading(false);
     }
@@ -91,12 +96,12 @@ export default function App() {
             </div>
           </motion.div>
         )}
-        <div ref={messagesEndRef} />
-      </main>
+        <div ref={messagesEndRef} />      </main>
 
       <footer className="p-6 bg-[var(--bg-card)] border-t border-[var(--border)]">
         <form onSubmit={handleSubmit} className="flex gap-4 max-w-4xl mx-auto items-center">
-          <input type="text" value={input} onChange={(e) => setInput(e.target.value)}            placeholder="Size nasıl destek olabilirim?..."
+          <input type="text" value={input} onChange={(e) => setInput(e.target.value)}
+            placeholder="Size nasıl destek olabilirim?..."
             className="flex-1 p-5 bg-[var(--bg-app)] rounded-3xl border border-[var(--border)] focus:outline-none focus:ring-4 focus:ring-[var(--accent)]/10 transition-all placeholder:text-slate-400 font-medium text-lg"
             aria-label="Mesaj girişi" />
           <button type="submit" disabled={isLoading}
