@@ -45,8 +45,8 @@ export default async function handler(
         'X-Title': 'EngelsizAI',
       },
       body: JSON.stringify({
-        // ✅ MODEL: Google Gemma 4 (Free)
-        model: model || 'google/gemma-4-31b-it:free',
+        // ✅ YENİ MODEL
+        model: model || 'minimax/minimax-m2.5:free',
         messages: messages || [],
         temperature: temperature || 0.7,
         max_tokens: max_tokens || 2048,
