@@ -47,7 +47,7 @@ export default function App() {
           <Sparkles size={20} />
         </div>
         <h1 className="text-xl font-bold text-gray-900">EngelsizAI</h1>
-        <span className="text-xs text-gray-500 font-mono">v1.0.3</span>
+        <span className="text-xs text-gray-500 font-mono">v1.0.5</span>
       </header>
       <main className="flex-1 overflow-y-auto p-4 md:p-6 flex justify-center">
         <div className="w-full max-w-3xl space-y-6">
