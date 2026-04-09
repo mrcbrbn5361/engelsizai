@@ -7,40 +7,6 @@ import { SYSTEM_PROMPT } from "../constants/systemPrompt";
 
 const API_BASE = 'https://engelsizai.vercel.app';
 
-// ✅ Retry fonksiyonu: Hata olursa bekleyip tekrar dener
-async function fetchWithRetry(
-  url: string,
-  options: RequestInit,
-  maxRetries: number = 3,
-  delayMs: number = 2000
-): Promise<Response> {
-  let lastError: any;
-  
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`🔄 Attempt ${attempt}/${maxRetries}`);
-      const response = await fetch(url, options);
-      
-      // 429 hatası ise bekle ve tekrar dene
-      if (response.status === 429 && attempt < maxRetries) {
-        const waitTime = delayMs * attempt;
-        console.log(`⏳ Rate limit hit, waiting ${waitTime}ms...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        continue;
-      }
-      
-      return response;
-    } catch (error: any) {
-      lastError = error;
-      if (attempt < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
-      }
-    }
-  }
-  
-  throw lastError;
-}
-
 export const createChat = () => {
   const currentTime = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
   const systemInstruction = `${SYSTEM_PROMPT}\n\nŞu anki saat: ${currentTime}`;
@@ -48,7 +14,8 @@ export const createChat = () => {
   return {
     sendMessageStream: async ({ message }: { message: string }) => {
       try {
-        const response = await fetchWithRetry(`${API_BASE}/api/openrouter`, {
+        // ✅ Doğrudan Fetch (Rate Limit / Retry Mantığı Kaldırıldı)
+        const response = await fetch(`${API_BASE}/api/openrouter`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -68,17 +35,13 @@ export const createChat = () => {
 
         if (!response.ok) {
           const errorBody = await response.json().catch(() => ({}));
-          
-          if (response.status === 429) {
-            throw new Error('Çok fazla istek gönderildi. Lütfen 30 saniye bekleyip tekrar deneyin.');
-          }
-          
           throw new Error(`API error: ${response.status} - ${errorBody.error || response.statusText}`);
         }
 
         const data = await response.json();
         const content = data.choices?.[0]?.message?.content || 'No response';
         
+        // ✅ Async Iterator Dönüşü
         return {
           async *[Symbol.asyncIterator]() {
             yield { text: content };
