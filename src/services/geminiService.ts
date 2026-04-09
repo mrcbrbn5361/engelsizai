@@ -18,8 +18,7 @@ export const createChat = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            // ✅ GÜNCEL MODEL
-            model: "google/gemma-3-27b-it:free",
+            model: "minimax/minimax-m2.5:free",
             messages: [
               { role: "system", content: systemInstruction },
               { role: "user", content: message }
@@ -34,6 +33,12 @@ export const createChat = () => {
 
         if (!response.ok) {
           const errorBody = await response.json().catch(() => ({}));
+          const retryAfter = errorBody.retryAfter || response.headers.get('Retry-After') || '60';
+
+          if (response.status === 429) {
+            throw new Error(`Çok fazla istek gönderildi. Lütfen ${retryAfter} saniye bekleyip tekrar deneyin.`);
+          }
+
           throw new Error(`API error: ${response.status} - ${errorBody.error || response.statusText}`);
         }
 
