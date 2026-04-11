@@ -53,10 +53,10 @@ export default function App() {
         <div className="w-full max-w-3xl space-y-6">
           <AnimatePresence>
             {messages.map(m => (
-              <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`p-3 md:p-4 rounded-2xl max-w-[85%] md:max-w-[75%] shadow-sm break-words overflow-hidden ${m.role === 'user' ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white border border-gray-200 rounded-bl-sm'}`}>
-                  <div className={`prose prose-sm md:prose-base max-w-none ${m.role === 'user' ? 'prose-white' : 'prose-gray'}`}>
-                    <Markdown remarkPlugins={[remarkGfm]}>{m.text}</Markdown>
+              <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`p-3 md:p-4 rounded-2xl max-w-[95%] sm:max-w-[85%] md:max-w-[75%] shadow-sm overflow-hidden ${m.role === 'user' ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white border border-gray-200 rounded-bl-sm'}`}>
+                  <div className={`prose prose-sm md:prose-base max-w-none break-words w-full overflow-x-auto ${m.role === 'user' ? 'prose-white' : 'prose-gray'}`}>
+                    <Markdown remarkPlugins={[remarkGfm]}>{m.text.replace(/<br\s*\/?>/gi, '\n')}</Markdown>
                   </div>
                 </div>
               </motion.div>
