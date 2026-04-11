@@ -1,1 +1,23 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@layer utilities {
+  .prose-white {
+    --tw-prose-body: #fff;
+    --tw-prose-headings: #fff;
+    --tw-prose-lead: #fff;
+    --tw-prose-links: #fff;
+    --tw-prose-bold: #fff;
+    --tw-prose-counters: #fff;
+    --tw-prose-bullets: #fff;
+    --tw-prose-hr: rgba(255, 255, 255, 0.2);
+    --tw-prose-quotes: #fff;
+    --tw-prose-quote-borders: rgba(255, 255, 255, 0.2);
+    --tw-prose-captions: #fff;
+    --tw-prose-code: #fff;
+    --tw-prose-pre-code: #fff;
+    --tw-prose-pre-bg: rgba(0, 0, 0, 0.2);
+    --tw-prose-th-borders: rgba(255, 255, 255, 0.3);
+    --tw-prose-td-borders: rgba(255, 255, 255, 0.2);
+  }
+}

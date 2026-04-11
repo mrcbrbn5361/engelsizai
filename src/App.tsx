@@ -54,8 +54,8 @@ export default function App() {
           <AnimatePresence>
             {messages.map(m => (
               <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`p-4 rounded-2xl max-w-[90%] shadow-sm ${m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200'}`}>
-                  <div className="prose prose-sm md:prose-base max-w-none">
+                <div className={`p-3 md:p-4 rounded-2xl max-w-[85%] md:max-w-[75%] shadow-sm break-words overflow-hidden ${m.role === 'user' ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white border border-gray-200 rounded-bl-sm'}`}>
+                  <div className={`prose prose-sm md:prose-base max-w-none ${m.role === 'user' ? 'prose-white' : 'prose-gray'}`}>
                     <Markdown remarkPlugins={[remarkGfm]}>{m.text}</Markdown>
                   </div>
                 </div>

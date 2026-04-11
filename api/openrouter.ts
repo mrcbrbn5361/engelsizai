@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-oss-120b:free',
+        model: 'google/gemma-2-9b-it:free',
         messages: [
           { role: 'system', content: `Sen "EngelsizAI" adlı yapay zeka asistanısın.
 
