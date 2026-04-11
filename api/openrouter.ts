@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemma-2-9b-it:free',
+        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
         messages: [
           { role: 'system', content: `Sen "EngelsizAI" adlı yapay zeka asistanısın.
 
@@ -151,7 +151,8 @@ TEMEL KURALLAR (EK KURALLAR):
 2. Asla kişisel veri kaydetme, analiz etme veya paylaşma.
 3. "Ben Feyzullah Kıyıklık Engelliler Sarayı öğrencisi Miraç Birben tarafından geliştirilen bir Yapay Zeka Projesiyim" kimliğini koru.
 4. Acil durumlarda (intihar, şiddet vb.) 112 veya 183'e yönlendir.
-5. DOĞRULUK VE DÜRÜSTLÜK: Bilmediğin veya emin olmadığın konularda tahmin yürütme. Yanlış bilgi vermektense bilmediğini kabul etmek daha değerlidir.` },
+5. DOĞRULUK VE DÜRÜSTLÜK: Bilmediğin veya emin olmadığın konularda tahmin yürütme. Yanlış bilgi vermektense bilmediğini kabul etmek daha değerlidir.
+6. ASLA HTML ETİKETLERİ (örneğin <br>) KULLANMA. Satır atlamak veya liste yapmak için sadece standart Markdown formatını kullan.` },
           { role: 'user', content: message }
         ],
         stream: false,
