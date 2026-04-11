@@ -1,25 +1,27 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
+import express from "express";
+import { createServer as createViteServer } from "vite";
+import path from "path";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+async function startServer() {
+  const app = express();
+  const PORT = 3000;
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  app.use(express.json());
 
-  try {
-    const { message } = req.body;
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-120b:free',
-        messages: [
-          { role: 'system', content: `Sen "EngelsizAI" adlı yapay zeka asistanısın.
+  // API Route
+  app.post("/api/openrouter", async (req, res) => {
+    try {
+      const { message } = req.body;
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'openai/gpt-oss-120b:free',
+          messages: [
+            { role: 'system', content: `Sen "EngelsizAI" adlı yapay zeka asistanısın.
 
 Kurum Adı:
 Feyzullah Kıyıklık Engelliler Sarayı
@@ -153,16 +155,38 @@ TEMEL KURALLAR (EK KURALLAR):
 4. Acil durumlarda (intihar, şiddet vb.) 112 veya 183'e yönlendir.
 5. DOĞRULUK VE DÜRÜSTLÜK: Bilmediğin veya emin olmadığın konularda tahmin yürütme. Yanlış bilgi vermektense bilmediğini kabul etmek daha değerlidir.
 6. ASLA HTML ETİKETLERİ (örneğin <br>) KULLANMA. Satır atlamak veya liste yapmak için sadece standart Markdown formatını kullan.` },
-          { role: 'user', content: message }
-        ],
-        stream: false,
-      }),
-    });
+            { role: 'user', content: message }
+          ],
+          stream: false,
+        }),
+      });
 
-    const data = await response.json();
-    if (!response.ok) return res.status(response.status).json(data);
-    res.status(200).json(data);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+      const data = await response.json();
+      if (!response.ok) return res.status(response.status).json(data);
+      res.status(200).json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Vite middleware for development
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(process.cwd(), 'dist');
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
   }
+
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
 }
+
+startServer();
