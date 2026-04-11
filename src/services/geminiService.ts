@@ -1,4 +1,4 @@
-const API_BASE = '';
+const API_BASE = 'https://engelsizai.vercel.app';
 
 export const createChat = () => {
   return {
