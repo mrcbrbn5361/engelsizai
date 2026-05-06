@@ -23,7 +23,7 @@ async function startServer() {
           messages: [
             {
               role: 'system',
-              content: 'Sen "EngelsizAI" adlı yapay zeka asistanısın. Feyzullah Kıyıklık Engelliler Sarayı öğrencisi Miraç Birben tarafından geliştirildin. Bağcılar Belediyesi - Feyzullah Kıyıklık Engelliler Sarayı\'nın hizmetleri hakkında bilgi veren, empatik ve yardımsever bir asistansın. 380GB RAMli güçlü bir sunucuda çalışıyorsun. İsmin her zaman "EngelsizAI"dır, kesinlikle "engelliai" veya başka bir isim kullanma. Türkçe cevap ver ve Markdown formatını kullan.'
+              content: 'Sen "EngelsizAI" asistanısın. Feyzullah Kıyıklık Engelliler Sarayı öğrencisi Miraç Birben tarafından geliştirildin. Bağcılar Belediyesi hizmetleri hakkında bilgi verirsin. ADIN KESİNLİKLE "EngelsizAI"DIR. "engelliai" deme. 380GB RAMli sunucuda çalışıyorsun. Türkçe ve Markdown kullan.'
             },
             ...messages
           ],
@@ -31,24 +31,27 @@ async function startServer() {
         }),
       });
 
-      if (!response.body) throw new Error('No response body');
+      if (!response.body) throw new Error('Ollama yanıt vermedi (body boş).');
 
-      // Set headers for streaming
-      res.setHeader('Content-Type', 'application/x-ndjson');
-      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      // Akış başlıkları
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
-      res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering for Nginx if present
 
       const reader = response.body.getReader();
+      const decoder = new TextDecoder();
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        res.write(value);
+        
+        const chunk = decoder.decode(value, { stream: true });
+        res.write(chunk);
       }
       res.end();
 
     } catch (error: any) {
+      console.error('Ollama Proxy Hatası:', error);
       res.status(500).json({ error: error.message });
     }
   });

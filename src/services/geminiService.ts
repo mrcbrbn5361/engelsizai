@@ -33,33 +33,36 @@ export const createChat = () => {
             
             if (value) {
               buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split('\n');
-              buffer = lines.pop() || '';
-
-              for (const line of lines) {
-                if (line.trim()) {
+              
+              // Ollama delivers objects followed by a newline
+              let boundary = buffer.indexOf('\n');
+              while (boundary !== -1) {
+                const line = buffer.slice(0, boundary).trim();
+                buffer = buffer.slice(boundary + 1);
+                
+                if (line) {
                   try {
                     const json = JSON.parse(line);
                     if (json.message?.content) {
                       yield { text: json.message.content };
                     }
                   } catch (e) {
-                    console.warn('Failed to parse chunk:', line);
+                    console.warn('JSON Ayrıştırma Hatası:', e, line);
                   }
                 }
+                boundary = buffer.indexOf('\n');
               }
             }
 
             if (done) {
-              // Process any remaining data in the buffer
               if (buffer.trim()) {
                 try {
-                  const json = JSON.parse(buffer);
+                  const json = JSON.parse(buffer.trim());
                   if (json.message?.content) {
                     yield { text: json.message.content };
                   }
                 } catch (e) {
-                  // Final buffer might not be a complete JSON if stream was interrupted
+                  // Son parça tam olmayabilir
                 }
               }
               break;
