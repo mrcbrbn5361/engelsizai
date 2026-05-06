@@ -37,18 +37,25 @@ async function startServer() {
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no'); // Nginx tamponlamayı engelle
 
       const reader = response.body.getReader();
-      const decoder = new TextDecoder();
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value, { stream: true });
-        res.write(chunk);
+      try {
+        console.log("Ollama akışı başladı...");
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          // Veriyi olduğu gibi (Uint8Array) gönder, tip dönüşümüyle uğraşma
+          res.write(value);
+        }
+      } catch (streamError) {
+        console.error('Akış Sırasında Proxy Hatası:', streamError);
+      } finally {
+        console.log("Ollama akışı tamamlandı.");
+        res.end();
       }
-      res.end();
 
     } catch (error: any) {
       console.error('Ollama Proxy Hatası:', error);

@@ -26,12 +26,18 @@ export default function App() {
       const chat = createChat();
       const currentMessages = [...messages, userMessage];
       const streamResponse = await chat.sendMessageStream({ messages: currentMessages });
-      let assistantMessage: Message = { id: (Date.now() + 1).toString(), role: 'assistant', text: '' };
-      setMessages(prev => [...prev, assistantMessage]);
+      
+      const assistantId = (Date.now() + 1).toString();
+      setMessages(prev => [...prev, { id: assistantId, role: 'assistant', text: '' }]);
 
+      let accumulatedText = "";
       for await (const chunk of streamResponse) {
-        assistantMessage = { ...assistantMessage, text: assistantMessage.text + chunk.text };
-        setMessages(prev => prev.map(m => m.id === assistantMessage.id ? assistantMessage : m));
+        if (chunk.text) {
+          accumulatedText += chunk.text;
+          setMessages(prev => prev.map(m => 
+            m.id === assistantId ? { ...m, text: accumulatedText } : m
+          ));
+        }
       }
     } catch (error: any) {
       setMessages(prev => [...prev, { id: 'error', role: 'assistant', text: `Hata: ${error.message}` }]);

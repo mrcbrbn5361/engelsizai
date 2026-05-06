@@ -34,23 +34,34 @@ export const createChat = () => {
             if (value) {
               buffer += decoder.decode(value, { stream: true });
               
-              // Ollama delivers objects followed by a newline
-              let boundary = buffer.indexOf('\n');
-              while (boundary !== -1) {
-                const line = buffer.slice(0, boundary).trim();
-                buffer = buffer.slice(boundary + 1);
-                
-                if (line) {
+              // Satır satır ayır (Ollama NDJSON formatındadır)
+              let lines = buffer.split('\n');
+              buffer = lines.pop() || ''; // Tamamlanmamış son satırı sakla
+
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) continue;
+
+                try {
+                  const json = JSON.parse(trimmed);
+                  // Ollama formatı: { "message": { "content": "..." } }
+                  if (json.message?.content) {
+                    yield { text: json.message.content };
+                  } else if (json.response) { // Alternatif Ollama formatı
+                    yield { text: json.response };
+                  }
+                  
+                  if (json.done) return;
+                } catch (e) {
+                  // Eğer JSON başında/sonunda garip karakterler varsa temizlemeyi dene
                   try {
-                    const json = JSON.parse(line);
-                    if (json.message?.content) {
-                      yield { text: json.message.content };
-                    }
-                  } catch (e) {
-                    console.warn('JSON Ayrıştırma Hatası:', e, line);
+                    const cleanJson = trimmed.substring(trimmed.indexOf('{'), trimmed.lastIndexOf('}') + 1);
+                    const json = JSON.parse(cleanJson);
+                    if (json.message?.content) yield { text: json.message.content };
+                  } catch (innerError) {
+                    // Hala hatalıysa bu parçayı atla
                   }
                 }
-                boundary = buffer.indexOf('\n');
               }
             }
 
@@ -58,12 +69,8 @@ export const createChat = () => {
               if (buffer.trim()) {
                 try {
                   const json = JSON.parse(buffer.trim());
-                  if (json.message?.content) {
-                    yield { text: json.message.content };
-                  }
-                } catch (e) {
-                  // Son parça tam olmayabilir
-                }
+                  if (json.message?.content) yield { text: json.message.content };
+                } catch (e) {}
               }
               break;
             }
