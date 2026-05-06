@@ -34,12 +34,12 @@ async function startServer() {
       if (!response.body) throw new Error('No response body');
 
       // Set headers for streaming
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Content-Type', 'application/x-ndjson');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
       res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering for Nginx if present
 
       const reader = response.body.getReader();
-      const decoder = new TextDecoder();
 
       while (true) {
         const { done, value } = await reader.read();

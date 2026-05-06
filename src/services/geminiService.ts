@@ -30,26 +30,39 @@ export const createChat = () => {
           
           while (true) {
             const { done, value } = await reader.read();
-            if (done) break;
             
-            buffer += decoder.decode(value, { stream: true });
-            
-            // Ollama streams individual JSON objects per line/chunk
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || ''; // Keep the last partial line in buffer
+            if (value) {
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || '';
 
-            for (const line of lines) {
-              if (line.trim()) {
+              for (const line of lines) {
+                if (line.trim()) {
+                  try {
+                    const json = JSON.parse(line);
+                    if (json.message?.content) {
+                      yield { text: json.message.content };
+                    }
+                  } catch (e) {
+                    console.warn('Failed to parse chunk:', line);
+                  }
+                }
+              }
+            }
+
+            if (done) {
+              // Process any remaining data in the buffer
+              if (buffer.trim()) {
                 try {
-                  const json = JSON.parse(line);
+                  const json = JSON.parse(buffer);
                   if (json.message?.content) {
                     yield { text: json.message.content };
                   }
                 } catch (e) {
-                  // If JSON parse fails, it might be a partial line or multi-line-json
-                  console.warn('Failed to parse chunk:', line);
+                  // Final buffer might not be a complete JSON if stream was interrupted
                 }
               }
+              break;
             }
           }
         }
