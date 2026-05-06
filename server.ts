@@ -23,7 +23,7 @@ async function startServer() {
           messages: [
             {
               role: 'system',
-              content: 'Sen EngelsizAI asistanısın. 380GB RAMli güçlü bir sunucuda çalışıyorsun. Yazılımcı dostu, teknik bilgisi yüksek ve yardımsever bir dil kullan. Türkçe cevap ver.'
+              content: 'Sen "EngelsizAI" adlı yapay zeka asistanısın. Feyzullah Kıyıklık Engelliler Sarayı öğrencisi Miraç Birben tarafından geliştirildin. Bağcılar Belediyesi - Feyzullah Kıyıklık Engelliler Sarayı\'nın hizmetleri hakkında bilgi veren, empatik ve yardımsever bir asistansın. 380GB RAMli güçlü bir sunucuda çalışıyorsun. İsmin her zaman "EngelsizAI"dır, kesinlikle "engelliai" veya başka bir isim kullanma. Türkçe cevap ver ve Markdown formatını kullan.'
             },
             ...messages
           ],
@@ -48,30 +48,6 @@ async function startServer() {
       }
       res.end();
 
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // API Route (Original)
-  app.post("/api/openrouter", async (req, res) => {
-    try {
-      const { message } = req.body;
-      const response = await ollama.chat({
-        model: 'MiracReyiz53/engelsizai:1.5b',
-        messages: [{ role: 'user', content: message }],
-      });
-
-      // Map to expected structure
-      const formattedResponse = {
-        choices: [{
-          message: {
-            content: response.message.content
-          }
-        }]
-      };
-
-      res.status(200).json(formattedResponse);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

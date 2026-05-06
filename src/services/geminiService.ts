@@ -1,12 +1,17 @@
-const API_BASE = 'https://engelsizai.vercel.app';
+const API_BASE = '';
 
 export const createChat = () => {
   return {
-    sendMessageStream: async ({ message }: { message: string }) => {
-      const response = await fetch(`${API_BASE}/api/openrouter`, {
+    sendMessageStream: async ({ messages }: { messages: { id: string; role: 'user' | 'assistant'; text: string; }[] }) => {
+      const formattedMessages = messages.map(m => ({
+        role: m.role,
+        content: m.text
+      }));
+
+      const response = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ messages: formattedMessages }),
       });
 
       if (!response.ok) {
@@ -14,11 +19,39 @@ export const createChat = () => {
         console.error('Provider error details:', errorData);
         throw new Error(typeof errorData === 'object' ? JSON.stringify(errorData) : String(errorData));
       }
-      const data = await response.json();
-      
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
       return {
         [Symbol.asyncIterator]: async function* () {
-          yield { text: data.choices[0].message.content };
+          if (!reader) return;
+          let buffer = '';
+          
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            buffer += decoder.decode(value, { stream: true });
+            
+            // Ollama streams individual JSON objects per line/chunk
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || ''; // Keep the last partial line in buffer
+
+            for (const line of lines) {
+              if (line.trim()) {
+                try {
+                  const json = JSON.parse(line);
+                  if (json.message?.content) {
+                    yield { text: json.message.content };
+                  }
+                } catch (e) {
+                  // If JSON parse fails, it might be a partial line or multi-line-json
+                  console.warn('Failed to parse chunk:', line);
+                }
+              }
+            }
+          }
         }
       };
     }

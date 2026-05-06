@@ -24,7 +24,8 @@ export default function App() {
 
     try {
       const chat = createChat();
-      const streamResponse = await chat.sendMessageStream({ message: input });
+      const currentMessages = [...messages, userMessage];
+      const streamResponse = await chat.sendMessageStream({ messages: currentMessages });
       let assistantMessage: Message = { id: (Date.now() + 1).toString(), role: 'assistant', text: '' };
       setMessages(prev => [...prev, assistantMessage]);
 
