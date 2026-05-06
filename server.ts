@@ -31,6 +31,14 @@ async function startServer() {
         }),
       });
 
+      console.log(`Ollama Bağlantısı: ${response.status} ${response.statusText}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Ollama Hata Yanıtı:', errorText);
+        throw new Error(`Ollama Hatası (${response.status}): ${errorText}`);
+      }
+
       if (!response.body) throw new Error('Ollama yanıt vermedi (body boş).');
 
       // Akış başlıkları

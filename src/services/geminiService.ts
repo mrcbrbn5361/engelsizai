@@ -44,6 +44,13 @@ export const createChat = () => {
 
                 try {
                   const json = JSON.parse(trimmed);
+                  
+                  // Hata mesajını yakala
+                  if (json.error) {
+                    yield { text: `⚠️ Ollama Hatası: ${json.error}` };
+                    return;
+                  }
+
                   // Ollama formatı: { "message": { "content": "..." } }
                   if (json.message?.content) {
                     yield { text: json.message.content };
@@ -57,6 +64,12 @@ export const createChat = () => {
                   try {
                     const cleanJson = trimmed.substring(trimmed.indexOf('{'), trimmed.lastIndexOf('}') + 1);
                     const json = JSON.parse(cleanJson);
+                    
+                    if (json.error) {
+                      yield { text: `⚠️ Ollama Hatası: ${json.error}` };
+                      return;
+                    }
+
                     if (json.message?.content) yield { text: json.message.content };
                   } catch (innerError) {
                     // Hala hatalıysa bu parçayı atla
