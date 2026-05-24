@@ -12,7 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { message } = req.body;
     const MODELS_TO_TRY = [
       'google/gemini-2.0-flash-001',
-      'meta-llama/llama-3.3-70b-instruct',
+      'meta-llama/llama-3.1-8b-instruct',
       'mistralai/mistral-nemo'
     ];
 
@@ -203,6 +203,10 @@ TEMEL KURALLAR (EK KURALLAR):
     const data = await finalResponse.json();
     res.status(200).json(data);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[OpenRouter API] Hata:', error);
+    res.status(500).json({ 
+      error: error.message || 'Bilinmeyen bir hata oluştu',
+      details: error.toString() 
+    });
   }
 }
