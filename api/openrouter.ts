@@ -10,16 +10,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { message } = req.body;
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-120b:free',
-        messages: [
-          { role: 'system', content: `Sen "EngelsizAI" adlı yapay zeka asistanısın.
+    const MODELS_TO_TRY = [
+      'google/gemini-2.0-flash-001',
+      'meta-llama/llama-3.3-70b-instruct',
+      'mistralai/mistral-nemo'
+    ];
+
+    let finalResponse: any = null;
+    let selectedModel = '';
+
+    for (const model of MODELS_TO_TRY) {
+      try {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              { role: 'system', content: `Sen "EngelsizAI" adlı yapay zeka asistanısın.
 
 Kurum Adı:
 Feyzullah Kıyıklık Engelliler Sarayı
@@ -153,14 +164,43 @@ TEMEL KURALLAR (EK KURALLAR):
 4. Acil durumlarda (intihar, şiddet vb.) 112 veya 183'e yönlendir.
 5. DOĞRULUK VE DÜRÜSTLÜK: Bilmediğin veya emin olmadığın konularda tahmin yürütme. Yanlış bilgi vermektense bilmediğini kabul etmek daha değerlidir.
 6. ASLA HTML ETİKETLERİ (örneğin <br>) KULLANMA. Satır atlamak veya liste yapmak için sadece standart Markdown formatını kullan.` },
-          { role: 'user', content: message }
-        ],
-        stream: false,
-      }),
-    });
+              { role: 'user', content: message }
+            ],
+            stream: false,
+          }),
+        });
 
-    const data = await response.json();
-    if (!response.ok) return res.status(response.status).json(data);
+        if (!response.ok) {
+          const errorText = await response.text();
+          if (
+            response.status === 402 || 
+            response.status === 429 || 
+            response.status === 404 || 
+            response.status >= 500 || 
+            errorText.includes('quota') || 
+            errorText.includes('insufficient_quota')
+          ) {
+            console.warn(`[Vercel Proxy] Model ${model} hata verdi, sıradaki modele geçiliyor...`);
+            continue;
+          }
+          throw new Error(`OpenRouter Hatası (${response.status}): ${errorText}`);
+        }
+
+        finalResponse = response;
+        selectedModel = model;
+        break;
+      } catch (err: any) {
+        if (model === MODELS_TO_TRY[MODELS_TO_TRY.length - 1]) {
+          throw err;
+        }
+      }
+    }
+
+    if (!finalResponse) {
+      throw new Error('Tüm ücretsiz yapay zeka modellerinin kotası dolmuş veya şu an erişilemiyor. Lütfen daha sonra tekrar deneyin.');
+    }
+
+    const data = await finalResponse.json();
     res.status(200).json(data);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

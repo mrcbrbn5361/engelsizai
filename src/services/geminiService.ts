@@ -32,7 +32,9 @@ export const createChat = () => {
             const { done, value } = await reader.read();
             
             if (value) {
-              buffer += decoder.decode(value, { stream: true });
+              const decoded = decoder.decode(value, { stream: true });
+              console.log('Stream chunk received:', decoded);
+              buffer += decoded;
               
               // Satır satır ayır (Ollama NDJSON formatındadır)
               let lines = buffer.split('\n');
@@ -45,28 +47,31 @@ export const createChat = () => {
                 try {
                   const json = JSON.parse(trimmed);
                   
-                  // Hata mesajını yakala
                   if (json.error) {
-                    yield { text: `⚠️ Ollama Hatası: ${json.error}` };
+                    yield { text: `⚠️ Sunucu Hatası: ${json.error}` };
                     return;
                   }
 
-                  // Ollama formatı: { "message": { "content": "..." } }
                   if (json.message?.content) {
                     yield { text: json.message.content };
-                  } else if (json.response) { // Alternatif Ollama formatı
+                  } else if (json.response) {
                     yield { text: json.response };
                   }
                   
                   if (json.done) return;
                 } catch (e) {
+                  if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html')) {
+                    yield { text: '⚠️ Sunucu bir hata sayfası döndürdü (HTML). Muhtemelen tünel kapalı veya bağlantı sorunu var.' };
+                    return;
+                  }
+                  
                   // Eğer JSON başında/sonunda garip karakterler varsa temizlemeyi dene
                   try {
                     const cleanJson = trimmed.substring(trimmed.indexOf('{'), trimmed.lastIndexOf('}') + 1);
                     const json = JSON.parse(cleanJson);
                     
                     if (json.error) {
-                      yield { text: `⚠️ Ollama Hatası: ${json.error}` };
+                      yield { text: `⚠️ Sunucu Hatası: ${json.error}` };
                       return;
                     }
 
