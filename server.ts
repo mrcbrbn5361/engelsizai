@@ -1,6 +1,7 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
+import { GoogleGenAI } from "@google/genai";
 
 async function startServer() {
   const app = express();
@@ -146,17 +147,17 @@ TEMEL KURALLAR (EK KURALLAR):
   app.post("/api/chat", async (req, res) => {
     try {
       const { messages } = req.body;
-      
-      const apiKey = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY;
-      if (!apiKey) {
-        console.warn("[Proxy] OPENROUTER_API_KEY veya VITE_OPENROUTER_API_KEY bulunamadı!");
+      const userApiKey = (req.headers['x-gemini-api-key'] as string) || process.env.GEMINI_API_KEY;
+
+      if (!userApiKey) {
+        console.warn("[Proxy] Gemini API Key bulunamadı!");
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
         res.setHeader('X-Accel-Buffering', 'no');
         
         const output = {
-          message: { content: "⚠️ **Sistem Yapılandırma Hatası:** Lütfen AI Studio ayarlarınızın (Secrets) altında **OPENROUTER_API_KEY** değerini tanımladığınızdan emin olun." },
+          message: { content: "⚠️ **Gemini API Anahtarı Eksik:** Lütfen üst kısımdaki anahtar simgesine (🔑) tıklayarak kendi Gemini API anahtarınızı girin." },
           done: true
         };
         res.write(JSON.stringify(output) + '\n');
@@ -164,136 +165,60 @@ TEMEL KURALLAR (EK KURALLAR):
         return;
       }
 
-      // Convert format for OpenRouter
-      const formattedMessages = (messages || []).map((m: any) => ({
-        role: m.role || 'user',
-        content: m.content || m.text || ''
+      // Format messages for @google/genai (assistant role should be 'model')
+      const formattedContents = (messages || []).map((m: any) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content || m.text || '' }]
       }));
 
-      // Prepend system prompt to guide the assistant identity
-      const openRouterMessages = [
-        { role: 'system', content: SYSTEM_PROMPT },
-        ...formattedMessages
-      ];
-
-      const MODELS_TO_TRY = [
-        'meta-llama/llama-3.2-3b-instruct:free',
-        'nousresearch/hermes-3-llama-3.1-405b:free',
-        'gryphe/mythomax-l2-13b:free',
-        'microsoft/phi-3-medium-128k-instruct:free',
-        'openchat/openchat-7b:free'
-      ];
-
-      let openRouterResponse: any = null;
-      let selectedModel = '';
-
-      for (let i = 0; i < MODELS_TO_TRY.length; i++) {
-        const model = MODELS_TO_TRY[i];
-        const isLastModel = i === MODELS_TO_TRY.length - 1;
-        try {
-          console.log(`[Proxy] OpenRouter bağlantısı kuruluyor (${model})...`);
-
-          openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`,
-              'HTTP-Referer': 'https://github.com/miracbirben/engelsizai', 
-              'X-Title': 'EngelsizAI'
-            },
-            body: JSON.stringify({
-              model: model,
-              messages: openRouterMessages,
-              stream: true
-            })
-          });
-
-          console.log(`[Proxy] OpenRouter Yanıt Durumu (${model}): ${openRouterResponse.status} ${openRouterResponse.statusText}`);
-
-          if (!openRouterResponse.ok) {
-            const errorText = await openRouterResponse.text();
-            console.error(`[Proxy] OpenRouter Model (${model}) Hata Yanıtı:`, errorText);
-            
-            if (!isLastModel) {
-              console.warn(`[Proxy] Model ${model} hata verdi, sıradaki modele geçiliyor...`);
-              continue;
-            }
-            throw new Error(`OpenRouter Hatası (${openRouterResponse.status}): ${errorText}`);
+      // Initialize the official Google GenAI client
+      const ai = new GoogleGenAI({
+        apiKey: userApiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build'
           }
-
-          selectedModel = model;
-          break; // Connected successfully
-        } catch (err: any) {
-          console.error(`[Proxy] Model ${model} bağlantı/kullanım hatası:`, err.message || err);
-          if (isLastModel) throw err;
         }
-      }
-
-      if (!openRouterResponse || !openRouterResponse.ok) {
-        throw new Error('Tüm ücretsiz yapay zeka modellerinin kotası dolmuş veya şu an erişilemiyor. Lütfen daha sonra tekrar deneyin.');
-      }
-      
-      console.log(`[Proxy] Aktif model olarak "${selectedModel}" başarıyla seçildi.`);
-
-      const reader = openRouterResponse.body?.getReader();
-      if (!reader) {
-        throw new Error('OpenRouter yanıt akışı okunamadı.');
-      }
+      });
 
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
       res.setHeader('X-Accel-Buffering', 'no');
 
-      const decoder = new TextDecoder();
-      let buffer = '';
+      console.log("[Proxy] Gemini 3.1 Flash Lite ile bağlantı kuruluyor...");
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      const responseStream = await ai.models.generateContentStream({
+        model: "gemini-3.1-flash-lite",
+        contents: formattedContents,
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+        }
+      });
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          const cleanedLine = line.trim();
-          if (!cleanedLine) continue;
-
-          if (cleanedLine.startsWith('data: ')) {
-            const dataStr = cleanedLine.slice(6).trim();
-
-            if (dataStr === '[DONE]') {
-              res.write(JSON.stringify({ done: true }) + '\n');
-              continue;
-            }
-
-            try {
-              const parsed = JSON.parse(dataStr);
-              const content = parsed.choices?.[0]?.delta?.content;
-              if (content) {
-                const output = {
-                  message: { content },
-                  done: false
-                };
-                res.write(JSON.stringify(output) + '\n');
-              }
-            } catch (err) {
-              // Ignore partial chunk syntax errors gracefully
-            }
-          }
+      for await (const chunk of responseStream) {
+        if (chunk.text) {
+          const output = {
+            message: { content: chunk.text },
+            done: false
+          };
+          res.write(JSON.stringify(output) + '\n');
         }
       }
 
-      // Final closure signal for the NDJSON parser
       res.write(JSON.stringify({ done: true }) + '\n');
       res.end();
 
     } catch (error: any) {
-      console.error('[Proxy] Hata:', error.message);
-      // Send error using target message format so UI displays it cleanly
+      console.error('[Proxy] Gemini Hatası:', error.message || error);
+      
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no');
+
       const output = {
-        message: { content: `⚠️ **Entegrasyon Hatası:** ${error.message}` },
+        message: { content: `⚠️ **Gemini API Hatası:** ${error.message || 'API anahtarınız geçersiz olabilir veya istek kotası aşılmış olabilir.'}` },
         done: true
       };
       res.write(JSON.stringify(output) + '\n');

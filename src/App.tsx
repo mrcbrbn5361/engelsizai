@@ -9,6 +9,8 @@ import {
   Mic, 
   MicOff, 
   Eye, 
+  EyeOff,
+  Key, 
   Type, 
   Copy, 
   Check, 
@@ -26,6 +28,13 @@ interface Message {
   role: 'user' | 'assistant'; 
   text: string; 
 }
+
+const SUGGESTIONS = [
+  { text: '🎓 Eğitimler & Kurslar', query: 'Engelliler Sarayında hangi kurslar ve eğitimler veriliyor?' },
+  { text: '📝 Kayıt & Başvuru', query: 'Eğitimlere ve hizmetlere kayıt/başvuru nasıl yapılır?' },
+  { text: '📍 Konum & Ulaşım', query: 'Feyzullah Kıyıklık Engelliler Sarayı nerede, nasıl giderim?' },
+  { text: '🤝 Sosyal Hizmetler', query: 'Engelliler Sarayının sunduğu destek ve rehabilitasyon hizmetleri nelerdir?' }
+];
 
 export default function App() {
   const [messages, setMessages] = useState<Message[]>(() => {
@@ -49,6 +58,16 @@ export default function App() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Gemini API Key States
+  const [apiKey, setApiKey] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('gemini_api_key') || '';
+    }
+    return '';
+  });
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   // Accessibility States
   const [isHighContrast, setIsHighContrast] = useState(() => {
@@ -222,13 +241,12 @@ export default function App() {
     }
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
+  const sendMessage = async (text: string) => {
+    if (!text.trim() || isLoading) return;
 
     stopSpeaking();
 
-    const userMessage: Message = { id: Date.now().toString(), role: 'user', text: input };
+    const userMessage: Message = { id: Date.now().toString(), role: 'user', text };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
@@ -255,6 +273,12 @@ export default function App() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+    sendMessage(input);
   };
 
   // Typography Class Dynamic Adjustments
@@ -288,17 +312,38 @@ export default function App() {
           </div>
           <div>
             <h1 className={`${getTitleTextClass()}`}>EngelsizAI</h1>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
               <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-custom">
                 Miraç Birben
               </span>
-              <span className="text-[10px] font-mono font-bold text-muted-foreground">v1.0.7</span>
+              <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-custom flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Gemini 3.1 Flash Lite</span>
+              </span>
+              <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded-custom">v1.0.8</span>
             </div>
           </div>
         </div>
 
         {/* Accessibility Panel Controls */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* API Key Configuration */}
+          <button 
+            onClick={() => setShowApiKeyModal(true)}
+            aria-label="API Anahtarını Yapılandır"
+            className={`flex items-center gap-2 px-3 py-2 border rounded-custom transition-all active:scale-95 text-xs font-bold uppercase tracking-wider ${
+              apiKey 
+                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25' 
+                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25 animate-pulse'
+            }`}
+          >
+            <Key size={16} />
+            <span>API Anahtarı</span>
+            <span className={`px-1.5 py-0.5 rounded-custom text-[10px] ${apiKey ? 'bg-emerald-500 text-white font-mono' : 'bg-amber-500 text-white font-mono'}`}>
+              {apiKey ? 'AKTiF' : 'EKSiK'}
+            </span>
+          </button>
+
           {/* High Contrast Toggle */}
           <button 
             onClick={toggleHighContrast}
@@ -443,13 +488,86 @@ export default function App() {
             ))}
           </AnimatePresence>
 
+          {!apiKey && (
+            <div className="vibe-card p-6 bg-amber-500/10 border border-amber-500/20 text-foreground space-y-4 rounded-custom animate-pulse">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-amber-500 text-white rounded-custom mt-0.5 flex-shrink-0">
+                  <Key size={18} />
+                </div>
+                <div className="space-y-1.5">
+                  <h3 className="font-display font-bold text-sm uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                    Sohbeti Başlatmak İçin API Anahtarı Gerekli
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Bu yapay zeka asistanı doğrudan resmi Google Gemini API altyapısını kullanır. Ücretsiz sohbet etmeye başlamak için lütfen kendinize ait bir API anahtarı girin.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  onClick={() => setShowApiKeyModal(true)}
+                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-mono text-[11px] font-bold uppercase tracking-wider rounded-custom active:scale-95 transition-all cursor-pointer"
+                >
+                  🔑 ANAHTARI GİRİN
+                </button>
+                <a
+                  href="https://aistudio.google.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground font-mono text-[11px] font-bold uppercase tracking-wider rounded-custom active:scale-95 transition-all border border-border inline-flex items-center gap-1"
+                >
+                  Ücretsiz Anahtar Al ↗
+                </a>
+              </div>
+            </div>
+          )}
+
+          {messages.length === 1 && !isLoading && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+              {SUGGESTIONS.map((s, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => sendMessage(s.query)}
+                  className="text-left p-3 vibe-card hover:bg-muted bg-card border border-border transition-all active:scale-95 flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                  style={{ borderRadius: 'var(--radius)' }}
+                >
+                  <span className="group-hover:text-primary transition-colors">{s.text}</span>
+                  <Sparkles size={14} className="text-primary opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all flex-shrink-0 ml-2" />
+                </button>
+              ))}
+            </div>
+          )}
+
           {isLoading && (
             <div className="flex justify-start">
-              <div className="vibe-card p-4 bg-card text-foreground border-border flex items-center gap-3">
-                <Loader2 className="animate-spin text-primary" size={18} />
-                <span className={`font-medium ${getBodyTextClass()}`}>
-                  Yanıt oluşturuluyor...
-                </span>
+              <div className="vibe-card p-4 bg-card text-foreground border-border flex flex-col gap-2 min-w-[200px]">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                  </span>
+                  <span className={`text-xs font-mono font-bold tracking-wider text-primary uppercase`}>
+                    Düşünüyor
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 pt-1">
+                  <motion.span 
+                    animate={{ y: [0, -4, 0] }}
+                    transition={{ repeat: Infinity, duration: 0.6, delay: 0 }}
+                    className="h-1.5 w-1.5 rounded-full bg-primary opacity-40"
+                  />
+                  <motion.span 
+                    animate={{ y: [0, -4, 0] }}
+                    transition={{ repeat: Infinity, duration: 0.6, delay: 0.15 }}
+                    className="h-1.5 w-1.5 rounded-full bg-primary opacity-70"
+                  />
+                  <motion.span 
+                    animate={{ y: [0, -4, 0] }}
+                    transition={{ repeat: Infinity, duration: 0.6, delay: 0.3 }}
+                    className="h-1.5 w-1.5 rounded-full bg-primary opacity-100"
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -505,6 +623,118 @@ export default function App() {
           </button>
         </form>
       </footer>
+
+      {/* API KEY CONFIGURATION MODAL */}
+      <AnimatePresence>
+        {showApiKeyModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowApiKeyModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            
+            {/* Modal Box */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-card border border-border rounded-custom shadow-2xl p-6 overflow-hidden z-10"
+            >
+              <div className="flex items-center gap-3 border-b border-border pb-4 mb-4">
+                <div className="p-2 bg-primary/10 text-primary rounded-custom">
+                  <Key size={20} />
+                </div>
+                <div>
+                  <h2 className="font-display font-bold text-base text-foreground tracking-tight uppercase">
+                    Gemini API Anahtarı
+                  </h2>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                    Kişisel Yapay Zeka Altyapısı
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-3 bg-muted rounded-custom space-y-1.5 border border-border">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-primary">Nasıl Ücretsiz Anahtar Alınır?</h3>
+                  <ol className="text-xs text-muted-foreground space-y-1 list-decimal pl-4 leading-relaxed">
+                    <li><a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-semibold">Google AI Studio</a> web sitesine gidin.</li>
+                    <li>Google hesabınızla ücretsiz giriş yapın.</li>
+                    <li><strong>"Get API Key"</strong> düğmesine tıklayın.</li>
+                    <li>Oluşturduğunuz anahtarı kopyalayıp aşağıdaki alana yapıştırın.</li>
+                  </ol>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="api-key-input" className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                    <span>API ANAHTARI</span>
+                    <span className="text-[10px] lowercase text-emerald-500 font-mono">tarayıcınızda yerel saklanır</span>
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      id="api-key-input"
+                      type={showPassword ? "text" : "password"}
+                      value={apiKey}
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        setApiKey(val);
+                        localStorage.setItem('gemini_api_key', val);
+                      }}
+                      placeholder="AIzaSy..."
+                      className="w-full p-3 pr-10 bg-muted border border-border text-foreground outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-xs font-mono rounded-custom"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={showPassword ? "Anahtarı Gizle" : "Anahtarı Göster"}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                {apiKey ? (
+                  <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-custom flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Anahtar başarıyla kaydedildi! Sohbet etmeye başlayabilirsiniz.</span>
+                  </div>
+                ) : (
+                  <div className="p-2.5 bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 text-xs font-bold rounded-custom flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span>Anahtar henüz girilmedi. Lütfen bir anahtar girin.</span>
+                  </div>
+                )}
+
+                <div className="flex gap-2 justify-end pt-2">
+                  <button
+                    onClick={() => setShowApiKeyModal(false)}
+                    className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground font-mono text-[11px] font-bold uppercase tracking-wider rounded-custom active:scale-95 transition-all cursor-pointer"
+                  >
+                    Kapat
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!apiKey) {
+                        alert("Lütfen önce geçerli bir API anahtarı yapıştırın.");
+                        return;
+                      }
+                      setShowApiKeyModal(false);
+                    }}
+                    className="px-4 py-2 bg-primary text-primary-foreground hover:brightness-110 font-mono text-[11px] font-bold uppercase tracking-wider rounded-custom active:scale-95 transition-all cursor-pointer"
+                  >
+                    Kaydet ve Başlat
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

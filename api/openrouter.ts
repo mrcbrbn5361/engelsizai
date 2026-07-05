@@ -1,40 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { GoogleGenAI } from '@google/genai';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
-  try {
-    const { message } = req.body;
-    const MODELS_TO_TRY = [
-      'meta-llama/llama-3.2-3b-instruct:free',
-      'nousresearch/hermes-3-llama-3.1-405b:free',
-      'gryphe/mythomax-l2-13b:free',
-      'microsoft/phi-3-medium-128k-instruct:free',
-      'openchat/openchat-7b:free'
-    ];
-
-    let finalResponse: any = null;
-    let selectedModel = '';
-
-    for (let i = 0; i < MODELS_TO_TRY.length; i++) {
-      const model = MODELS_TO_TRY[i];
-      const isLastModel = i === MODELS_TO_TRY.length - 1;
-      try {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: model,
-            messages: [
-              { role: 'system', content: `Sen "EngelsizAI" adlı yapay zeka asistanısın.
+const SYSTEM_PROMPT = `Sen "EngelsizAI" adlı yapay zeka asistanısın.
 
 Kurum Adı:
 Feyzullah Kıyıklık Engelliler Sarayı
@@ -167,42 +134,79 @@ TEMEL KURALLAR (EK KURALLAR):
 3. "Ben Feyzullah Kıyıklık Engelliler Sarayı öğrencisi Miraç Birben tarafından geliştirilen bir Yapay Zeka Projesiyim" kimliğini koru.
 4. Acil durumlarda (intihar, şiddet vb.) 112 veya 183'e yönlendir.
 5. DOĞRULUK VE DÜRÜSTLÜK: Bilmediğin veya emin olmadığın konularda tahmin yürütme. Yanlış bilgi vermektense bilmediğini kabul etmek daha değerlidir.
-6. ASLA HTML ETİKETLERİ (örneğin <br>) KULLANMA. Satır atlamak veya liste yapmak için sadece standart Markdown formatını kullan.` },
-              { role: 'user', content: message }
-            ],
-            stream: false,
-          }),
-        });
+6. ASLA HTML ETİKETLERİ (örneğin <br>) KULLANMA. Satır atlamak veya liste yapmak için sadece standart Markdown formatını kullan.`;
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.warn(`[Vercel Proxy] Model ${model} hata verdi (${response.status}): ${errorText}`);
-          if (!isLastModel) {
-            console.warn(`[Vercel Proxy] Sıradaki modele geçiliyor...`);
-            continue;
-          }
-          throw new Error(`OpenRouter Hatası (${response.status}): ${errorText}`);
-        }
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Gemini-API-Key');
 
-        finalResponse = response;
-        selectedModel = model;
-        break;
-      } catch (err: any) {
-        console.error(`[Vercel Proxy] Model ${model} catch hatası:`, err.message || err);
-        if (isLastModel) {
-          throw err;
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  try {
+    const { messages, message } = req.body;
+    const userApiKey = (req.headers['x-gemini-api-key'] as string) || process.env.GEMINI_API_KEY;
+
+    if (!userApiKey) {
+      return res.status(400).json({ 
+        error: "Missing API Key", 
+        message: "Lütfen üst kısımdaki anahtar simgesine (🔑) tıklayarak kendi Gemini API anahtarınızı girin." 
+      });
+    }
+
+    // Adapt format (support both { messages } and { message })
+    let formattedContents = [];
+    if (messages && Array.isArray(messages)) {
+      formattedContents = messages.map((m: any) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content || m.text || '' }]
+      }));
+    } else if (message) {
+      formattedContents = [{
+        role: 'user',
+        parts: [{ text: message }]
+      }];
+    }
+
+    const ai = new GoogleGenAI({
+      apiKey: userApiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build'
         }
+      }
+    });
+
+    // For serverless context, we will support standard chunked response streaming
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    const responseStream = await ai.models.generateContentStream({
+      model: "gemini-3.1-flash-lite",
+      contents: formattedContents,
+      config: {
+        systemInstruction: SYSTEM_PROMPT,
+      }
+    });
+
+    for await (const chunk of responseStream) {
+      if (chunk.text) {
+        const output = {
+          message: { content: chunk.text },
+          done: false
+        };
+        res.write(JSON.stringify(output) + '\n');
       }
     }
 
-    if (!finalResponse) {
-      throw new Error('Tüm ücretsiz yapay zeka modellerinin kotası dolmuş veya şu an erişilemiyor. Lütfen daha sonra tekrar deneyin.');
-    }
+    res.write(JSON.stringify({ done: true }) + '\n');
+    res.end();
 
-    const data = await finalResponse.json();
-    res.status(200).json(data);
   } catch (error: any) {
-    console.error('[OpenRouter API] Hata:', error);
+    console.error('[Vercel Serverless] Gemini Hatası:', error);
     res.status(500).json({ 
       error: error.message || 'Bilinmeyen bir hata oluştu',
       details: error.toString() 

@@ -8,9 +8,14 @@ export const createChat = () => {
         content: m.text
       }));
 
+      const userApiKey = typeof window !== 'undefined' ? (localStorage.getItem('gemini_api_key') || '') : '';
+
       const response = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Gemini-API-Key': userApiKey
+        },
         body: JSON.stringify({ messages: formattedMessages }),
       });
 

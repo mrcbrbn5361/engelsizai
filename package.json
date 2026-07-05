@@ -1,6 +1,6 @@
 {
   "name": "engelsizai",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -11,6 +11,7 @@
   "dependencies": {
     "@capacitor/android": "^6.0.0",
     "@capacitor/core": "^6.0.0",
+    "@google/genai": "^2.10.0",
     "@tailwindcss/typography": "^0.5.19",
     "@vercel/analytics": "^1.4.1",
     "ai": "^6.0.175",
