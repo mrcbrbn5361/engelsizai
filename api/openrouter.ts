@@ -11,15 +11,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { message } = req.body;
     const MODELS_TO_TRY = [
-      'google/gemini-2.0-flash-001',
-      'meta-llama/llama-3.1-8b-instruct',
-      'mistralai/mistral-nemo'
+      'meta-llama/llama-3.2-3b-instruct:free',
+      'nousresearch/hermes-3-llama-3.1-405b:free',
+      'gryphe/mythomax-l2-13b:free',
+      'microsoft/phi-3-medium-128k-instruct:free',
+      'openchat/openchat-7b:free'
     ];
 
     let finalResponse: any = null;
     let selectedModel = '';
 
-    for (const model of MODELS_TO_TRY) {
+    for (let i = 0; i < MODELS_TO_TRY.length; i++) {
+      const model = MODELS_TO_TRY[i];
+      const isLastModel = i === MODELS_TO_TRY.length - 1;
       try {
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
@@ -172,15 +176,9 @@ TEMEL KURALLAR (EK KURALLAR):
 
         if (!response.ok) {
           const errorText = await response.text();
-          if (
-            response.status === 402 || 
-            response.status === 429 || 
-            response.status === 404 || 
-            response.status >= 500 || 
-            errorText.includes('quota') || 
-            errorText.includes('insufficient_quota')
-          ) {
-            console.warn(`[Vercel Proxy] Model ${model} hata verdi, sıradaki modele geçiliyor...`);
+          console.warn(`[Vercel Proxy] Model ${model} hata verdi (${response.status}): ${errorText}`);
+          if (!isLastModel) {
+            console.warn(`[Vercel Proxy] Sıradaki modele geçiliyor...`);
             continue;
           }
           throw new Error(`OpenRouter Hatası (${response.status}): ${errorText}`);
@@ -190,7 +188,8 @@ TEMEL KURALLAR (EK KURALLAR):
         selectedModel = model;
         break;
       } catch (err: any) {
-        if (model === MODELS_TO_TRY[MODELS_TO_TRY.length - 1]) {
+        console.error(`[Vercel Proxy] Model ${model} catch hatası:`, err.message || err);
+        if (isLastModel) {
           throw err;
         }
       }

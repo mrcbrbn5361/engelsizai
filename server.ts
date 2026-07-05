@@ -177,15 +177,19 @@ TEMEL KURALLAR (EK KURALLAR):
       ];
 
       const MODELS_TO_TRY = [
-        'google/gemini-2.0-flash-001',
-        'meta-llama/llama-3.1-8b-instruct',
-        'mistralai/mistral-nemo'
+        'meta-llama/llama-3.2-3b-instruct:free',
+        'nousresearch/hermes-3-llama-3.1-405b:free',
+        'gryphe/mythomax-l2-13b:free',
+        'microsoft/phi-3-medium-128k-instruct:free',
+        'openchat/openchat-7b:free'
       ];
 
       let openRouterResponse: any = null;
       let selectedModel = '';
 
-      for (const model of MODELS_TO_TRY) {
+      for (let i = 0; i < MODELS_TO_TRY.length; i++) {
+        const model = MODELS_TO_TRY[i];
+        const isLastModel = i === MODELS_TO_TRY.length - 1;
         try {
           console.log(`[Proxy] OpenRouter bağlantısı kuruluyor (${model})...`);
 
@@ -210,8 +214,8 @@ TEMEL KURALLAR (EK KURALLAR):
             const errorText = await openRouterResponse.text();
             console.error(`[Proxy] OpenRouter Model (${model}) Hata Yanıtı:`, errorText);
             
-            // If quota, rate limit, provider error, or model not found (404), retry with next model
-            if (openRouterResponse.status === 402 || openRouterResponse.status === 429 || openRouterResponse.status === 404 || openRouterResponse.status >= 500 || errorText.includes('quota') || errorText.includes('insufficient_quota')) {
+            if (!isLastModel) {
+              console.warn(`[Proxy] Model ${model} hata verdi, sıradaki modele geçiliyor...`);
               continue;
             }
             throw new Error(`OpenRouter Hatası (${openRouterResponse.status}): ${errorText}`);
@@ -220,8 +224,8 @@ TEMEL KURALLAR (EK KURALLAR):
           selectedModel = model;
           break; // Connected successfully
         } catch (err: any) {
-          console.error(`[Proxy] Model ${model} bağlantı/kullanım hatası:`, err.message);
-          if (model === MODELS_TO_TRY[MODELS_TO_TRY.length - 1]) throw err;
+          console.error(`[Proxy] Model ${model} bağlantı/kullanım hatası:`, err.message || err);
+          if (isLastModel) throw err;
         }
       }
 
