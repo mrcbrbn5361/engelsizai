@@ -1,18 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
 :root {
-  --background: #fcf8fb;
-  --foreground: #1c1b1d;
-  --card: #ffffff;
-  --primary: #005c55;
-  --primary-hover: #004d47;
+  --background: #090d16;
+  --foreground: #f1f5f9;
+  --card: rgba(15, 23, 42, 0.75);
+  --card-border: rgba(45, 212, 191, 0.2);
+  --primary: #14b8a6;
+  --primary-hover: #0d9488;
+  --primary-foreground: #090d16;
+  --muted: rgba(30, 41, 59, 0.7);
+  --muted-foreground: #94a3b8;
+  --border: rgba(255, 255, 255, 0.12);
+  --radius: 0.75rem;
+  --glow-color: rgba(20, 184, 166, 0.25);
+  --ai-accent: #38bdf8;
+}
+
+/* Light Theme (Özel Seçilebilir veya Aydınlık Alanlar İçin) */
+.light-mode {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: rgba(255, 255, 255, 0.85);
+  --card-border: rgba(13, 148, 136, 0.25);
+  --primary: #0d9488;
+  --primary-hover: #0f766e;
   --primary-foreground: #ffffff;
-  --muted: #f0edf0;
-  --muted-foreground: #3e4947;
-  --border: #bdc9c6;
-  --radius: 0.25rem; /* 4px geometric corner */
+  --muted: #f1f5f9;
+  --muted-foreground: #475569;
+  --border: #cbd5e1;
+  --radius: 0.75rem;
+  --glow-color: rgba(13, 148, 136, 0.15);
+  --ai-accent: #0284c7;
 }
 
 /* High Contrast Mode (WCAG AAA - Ultra Erişilebilirlik) */
@@ -20,18 +40,22 @@
   --background: #000000;
   --foreground: #ffffff;
   --card: #000000;
+  --card-border: #ffffff;
   --primary: #ffff00;
   --primary-hover: #e6e600;
   --primary-foreground: #000000;
-  --muted: #1a1a1a;
+  --muted: #111111;
   --muted-foreground: #ffffff;
   --border: #ffffff;
-  --radius: 0.25rem; /* 4px geometric corner */
+  --radius: 0.25rem;
+  --glow-color: transparent;
+  --ai-accent: #ffff00;
 }
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
   
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -46,28 +70,96 @@
 }
 
 @layer utilities {
-  /* Vibe Container Style */
-  .vibe-container {
-    width: 100%;
-    max-width: 1280px;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 1rem;
-    padding-right: 1rem;
+  /* Futuristic AI Grid Background */
+  .ai-grid-bg {
+    background-image: 
+      radial-gradient(circle at 50% 0%, rgba(20, 184, 166, 0.15) 0%, transparent 60%),
+      radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.1) 0%, transparent 50%),
+      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
   }
-  
-  /* Vibe Card Style */
-  .vibe-card {
-    border-width: 1px;
-    border-color: var(--border);
-    box-shadow: none !important;
+
+  .high-contrast .ai-grid-bg {
+    background-image: none;
+    background-color: #000000;
+  }
+
+  /* Glassmorphism Panel */
+  .ai-glass-panel {
     background-color: var(--card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
     border-radius: var(--radius);
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+
+  .high-contrast .ai-glass-panel {
+    background-color: #000000;
+    backdrop-filter: none;
+    border: 2px solid #ffffff;
+    box-shadow: none;
+  }
+
+  /* AI Glowing Border */
+  .ai-glow-border {
+    position: relative;
+  }
+  .ai-glow-border::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.5), rgba(56, 189, 248, 0.2), transparent 70%);
+    border-radius: calc(var(--radius) + 1px);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  .high-contrast .ai-glow-border::after {
+    display: none;
+  }
+
+  /* AI Pulse Core Glow */
+  .ai-core-pulse {
+    box-shadow: 0 0 25px var(--glow-color), 0 0 50px var(--glow-color);
+  }
+
+  /* Audio Wave Visualizer Bar */
+  .audio-bar {
+    animation: soundWave 1.2s infinite ease-in-out alternate;
   }
 }
 
-/* Overriding typography helper styles dynamically to match themes */
+@keyframes soundWave {
+  0% { height: 4px; }
+  100% { height: 20px; }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(20, 184, 166, 0.4);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(20, 184, 166, 0.8);
+}
+
+.high-contrast ::-webkit-scrollbar-thumb {
+  background: #ffffff;
+}
+
+/* Overriding typography helper styles dynamically */
 .prose {
   --tw-prose-body: var(--foreground);
   --tw-prose-headings: var(--foreground);
@@ -79,7 +171,7 @@
   --tw-prose-quotes: var(--foreground);
   --tw-prose-quote-borders: var(--border);
   --tw-prose-captions: var(--muted-foreground);
-  --tw-prose-code: var(--foreground);
+  --tw-prose-code: var(--primary);
   --tw-prose-pre-code: var(--foreground);
   --tw-prose-pre-bg: var(--muted);
   --tw-prose-th-borders: var(--border);
@@ -89,5 +181,7 @@
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: "Inter", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  overflow-x: hidden;
 }
+

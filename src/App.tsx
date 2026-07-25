@@ -1,5 +1,5 @@
 import { useState, FormEvent, useEffect, useRef } from 'react';
-import { createChat } from './services/geminiService';
+import { createChat, NVIDIA_MODELS } from './services/geminiService';
 import { 
   Send, 
   Loader2, 
@@ -9,14 +9,22 @@ import {
   Mic, 
   MicOff, 
   Eye, 
-  EyeOff,
-  Key, 
   Type, 
   Copy, 
   Check, 
   Trash2, 
   Info, 
-  VolumeX
+  Bot,
+  Cpu,
+  Zap,
+  BookOpen,
+  MapPin,
+  Users,
+  ShieldCheck,
+  Radio,
+  ChevronDown,
+  Activity,
+  HelpCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
@@ -30,10 +38,30 @@ interface Message {
 }
 
 const SUGGESTIONS = [
-  { text: '🎓 Eğitimler & Kurslar', query: 'Engelliler Sarayında hangi kurslar ve eğitimler veriliyor?' },
-  { text: '📝 Kayıt & Başvuru', query: 'Eğitimlere ve hizmetlere kayıt/başvuru nasıl yapılır?' },
-  { text: '📍 Konum & Ulaşım', query: 'Feyzullah Kıyıklık Engelliler Sarayı nerede, nasıl giderim?' },
-  { text: '🤝 Sosyal Hizmetler', query: 'Engelliler Sarayının sunduğu destek ve rehabilitasyon hizmetleri nelerdir?' }
+  { 
+    title: 'Eğitimler & Kurslar', 
+    desc: 'Atölyeler, Kodlama, EKPSS ve Sanat Kursları',
+    icon: BookOpen,
+    query: 'Feyzullah Kıyıklık Engelliler Sarayında hangi kurslar ve eğitimler veriliyor?' 
+  },
+  { 
+    title: 'Kayıt & Başvuru', 
+    desc: 'Gerekli Belgeler, Şartlar ve Başvuru Süreci',
+    icon: ShieldCheck,
+    query: 'Eğitimlere ve hizmetlere kayıt/başvuru nasıl yapılır, hangi belgeler gereklidir?' 
+  },
+  { 
+    title: 'Konum & Ulaşım', 
+    desc: 'Adres, Yol Tarifi, Otobüs ve Metro Rotaları',
+    icon: MapPin,
+    query: 'Feyzullah Kıyıklık Engelliler Sarayı nerede, toplu taşıma ile nasıl giderim?' 
+  },
+  { 
+    title: 'Sosyal Hizmetler', 
+    desc: 'Ergoterapi, Duyu Bütünleme ve Terapiler',
+    icon: Users,
+    query: 'Engelliler Sarayının sunduğu destek, rehabilitasyon ve terapi hizmetleri nelerdir?' 
+  }
 ];
 
 export default function App() {
@@ -51,7 +79,7 @@ export default function App() {
     return [{ 
       id: '1', 
       role: 'assistant', 
-      text: 'Merhaba! Ben Feyzullah Kıyıklık Engelliler Sarayı öğrencisi Miraç Birben tarafından geliştirilen bir Yapay Zeka Projesiyim. Bağcılar Belediyesi ve Engelliler Sarayı hizmetleri hakkında sorularınızı yanıtlayabilirim. Size nasıl yardımcı olabilirim?' 
+      text: 'Merhaba! Ben Feyzullah Kıyıklık Engelliler Sarayı öğrencisi **Miraç Birben** tarafından geliştirilen **EngelsizAI Yapay Zeka Asistanıyım**.\n\nBağcılar Belediyesi ve Feyzullah Kıyıklık Engelliler Sarayı bünyesindeki tüm kurslar, rehabilitasyon hizmetleri, etkinlikler ve başvuru süreçleri hakkında size anında rehberlik edebilirim.\n\nAşağıdaki hızlı konu başlıklarından birini seçebilir veya sorunuzu sesli / yazılı olarak sorabilirsiniz.' 
     }];
   });
 
@@ -59,15 +87,13 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Gemini API Key States
-  const [apiKey, setApiKey] = useState(() => {
+  // NVIDIA Model State
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('gemini_api_key') || '';
+      return localStorage.getItem('nvidia_selected_model') || 'meta/llama-3.3-70b-instruct';
     }
-    return '';
+    return 'meta/llama-3.3-70b-instruct';
   });
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   
   // Accessibility States
   const [isHighContrast, setIsHighContrast] = useState(() => {
@@ -97,6 +123,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('engelsiz_chat_history', JSON.stringify(messages));
   }, [messages]);
+
+  useEffect(() => {
+    localStorage.setItem('nvidia_selected_model', selectedModel);
+  }, [selectedModel]);
 
   // Audio setup and auto-scroll
   useEffect(() => {
@@ -234,7 +264,7 @@ export default function App() {
       const defaultMsg: Message = { 
         id: '1', 
         role: 'assistant', 
-        text: 'Konuşma temizlendi. Size nasıl yardımcı olabilirim?' 
+        text: 'Konuşma geçmişi temizlendi. Size nasıl yardımcı olabilirim?' 
       };
       setMessages([defaultMsg]);
       localStorage.setItem('engelsiz_chat_history', JSON.stringify([defaultMsg]));
@@ -254,7 +284,7 @@ export default function App() {
     try {
       const chat = createChat();
       const currentMessages = [...messages, userMessage];
-      const streamResponse = await chat.sendMessageStream({ messages: currentMessages });
+      const streamResponse = await chat.sendMessageStream({ messages: currentMessages, model: selectedModel });
       
       const assistantId = (Date.now() + 1).toString();
       setMessages(prev => [...prev, { id: assistantId, role: 'assistant', text: '' }]);
@@ -301,163 +331,323 @@ export default function App() {
   };
 
   return (
-    <div className={`flex flex-col h-[100dvh] bg-background text-foreground overflow-hidden transition-colors duration-200 ${isHighContrast ? 'high-contrast' : ''}`}>
+    <div className={`flex flex-col h-[100dvh] bg-background text-foreground overflow-hidden ai-grid-bg transition-colors duration-200 ${isHighContrast ? 'high-contrast' : ''}`}>
       <Analytics />
       
-      {/* ACCESS HEADER */}
-      <header className="flex-none p-4 bg-card border-b border-border flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between z-10">
+      {/* HIGH-TECH AI HEADER */}
+      <header className="flex-none p-3.5 md:p-4 ai-glass-panel border-b border-border flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between z-20 sticky top-0 shadow-lg">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary text-primary-foreground rounded-custom">
-            <Sparkles size={20} />
+          {/* Animated AI Core Emblem */}
+          <div className="relative flex items-center justify-center w-11 h-11 rounded-custom bg-gradient-to-br from-teal-500/20 via-cyan-500/10 to-transparent border border-teal-500/30 text-teal-400 shadow-inner group">
+            <div className="absolute inset-0 rounded-custom bg-teal-500/10 animate-ping opacity-25"></div>
+            <Bot size={22} className="text-teal-400 group-hover:scale-110 transition-transform duration-300" />
+            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-teal-500"></span>
+            </span>
           </div>
+
           <div>
-            <h1 className={`${getTitleTextClass()}`}>EngelsizAI</h1>
+            <div className="flex items-center gap-2">
+              <h1 className={`${getTitleTextClass()} bg-gradient-to-r from-foreground via-teal-200 to-cyan-400 bg-clip-text text-transparent`}>
+                EngelsizAI
+              </h1>
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-400 border border-teal-500/30 flex items-center gap-1">
+                <Radio size={10} className="animate-pulse text-teal-400" />
+                <span>ASİSTAN</span>
+              </span>
+            </div>
+
             <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-              <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-custom">
-                Miraç Birben
+              <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-custom border border-border/40">
+                Geliştirici: Miraç Birben
               </span>
-              <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-custom flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Gemini 3.1 Flash Lite</span>
+              <span className="text-[10px] font-mono font-bold text-teal-400 bg-teal-950/40 px-2 py-0.5 rounded-custom border border-teal-500/30 flex items-center gap-1">
+                <Cpu size={10} />
+                <span>NVIDIA NIM</span>
               </span>
-              <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded-custom">v1.0.8</span>
+              <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-custom border border-border/40">
+                v1.1.0
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Accessibility Panel Controls */}
+        {/* Action & Accessibility Controls */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* API Key Configuration */}
-          <button 
-            onClick={() => setShowApiKeyModal(true)}
-            aria-label="API Anahtarını Yapılandır"
-            className={`flex items-center gap-2 px-3 py-2 border rounded-custom transition-all active:scale-95 text-xs font-bold uppercase tracking-wider ${
-              apiKey 
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25' 
-                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25 animate-pulse'
-            }`}
-          >
-            <Key size={16} />
-            <span>API Anahtarı</span>
-            <span className={`px-1.5 py-0.5 rounded-custom text-[10px] ${apiKey ? 'bg-emerald-500 text-white font-mono' : 'bg-amber-500 text-white font-mono'}`}>
-              {apiKey ? 'AKTiF' : 'EKSiK'}
-            </span>
-          </button>
+          {/* NVIDIA Model Selector Dropdown */}
+          <div className="relative">
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              aria-label="NVIDIA Model Seçin"
+              className="appearance-none bg-slate-950 text-teal-300 text-xs font-mono font-bold py-1.5 pl-3 pr-8 rounded-custom border border-teal-500/40 hover:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400 cursor-pointer shadow-md"
+            >
+              {NVIDIA_MODELS.map(m => (
+                <option key={m.id} value={m.id} className="bg-slate-900 text-foreground py-1">
+                  [{m.category}] {m.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-teal-400 pointer-events-none" />
+          </div>
 
           {/* High Contrast Toggle */}
           <button 
             onClick={toggleHighContrast}
             aria-label="Yüksek Kontrast Modunu Aç/Kapat"
-            className="flex items-center gap-2 px-3 py-2 bg-muted hover:bg-muted/80 text-foreground border border-border rounded-custom transition-all active:scale-95 text-xs font-bold uppercase tracking-wider"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-muted hover:bg-muted/80 text-foreground border border-border/60 rounded-custom transition-all active:scale-95 text-xs font-bold uppercase tracking-wider cursor-pointer"
           >
-            <Eye size={16} className="text-primary" />
-            <span>Kontrast</span>
-            <span className={`px-1.5 py-0.5 rounded-custom text-[10px] ${isHighContrast ? 'bg-primary text-primary-foreground' : 'bg-background text-foreground'}`}>
-              {isHighContrast ? 'WCAG AAA' : 'Standart'}
+            <Eye size={14} className="text-teal-400" />
+            <span className="hidden md:inline">Kontrast</span>
+            <span className={`px-1.5 py-0.5 rounded text-[10px] ${isHighContrast ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground'}`}>
+              {isHighContrast ? 'AAA' : 'STD'}
             </span>
           </button>
 
-          {/* Font Size Toggle */}
+          {/* Font Size Selector */}
           <button 
             onClick={cycleFontSize}
             aria-label="Yazı Boyutunu Değiştir"
-            className="flex items-center gap-2 px-3 py-2 bg-muted hover:bg-muted/80 text-foreground border border-border rounded-custom transition-all active:scale-95 text-xs font-bold uppercase tracking-wider"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-muted hover:bg-muted/80 text-foreground border border-border/60 rounded-custom transition-all active:scale-95 text-xs font-bold uppercase tracking-wider cursor-pointer"
           >
-            <Type size={16} className="text-primary" />
-            <span>Boyut</span>
-            <span className="px-1.5 py-0.5 bg-primary text-primary-foreground rounded-custom text-[10px]">
-              {fontSize === 'normal' && 'Normal'}
-              {fontSize === 'large' && 'Büyük'}
-              {fontSize === 'huge' && 'Çok Büyük'}
+            <Type size={14} className="text-teal-400" />
+            <span className="hidden md:inline">Boyut</span>
+            <span className="px-1.5 py-0.5 bg-primary text-primary-foreground rounded text-[10px] font-mono">
+              {fontSize === 'normal' && '1X'}
+              {fontSize === 'large' && '1.2X'}
+              {fontSize === 'huge' && '1.5X'}
             </span>
           </button>
 
-          {/* Help Panel Toggle */}
+          {/* Help Panel */}
           <button 
             onClick={() => setShowHelp(!showHelp)}
             aria-label="Bilgi ve Yardım"
-            className="p-2 bg-muted hover:bg-muted/80 text-foreground border border-border rounded-custom transition-all active:scale-95"
+            className="p-2 bg-muted hover:bg-muted/80 text-foreground border border-border/60 rounded-custom transition-all active:scale-95 cursor-pointer"
           >
-            <Info size={16} />
+            <Info size={15} />
           </button>
 
-          {/* Clear Conversations */}
+          {/* Clear History */}
           <button 
             onClick={clearChat}
             aria-label="Sohbeti Temizle"
-            className="p-2 bg-muted hover:bg-muted/80 text-red-600 dark:text-red-400 border border-border rounded-custom transition-all active:scale-95"
+            className="p-2 bg-muted hover:bg-red-500/20 text-red-400 border border-border/60 hover:border-red-500/40 rounded-custom transition-all active:scale-95 cursor-pointer"
           >
-            <Trash2 size={16} />
+            <Trash2 size={15} />
           </button>
         </div>
       </header>
 
-      {/* DETAILED ACCESSIBILITY HELP BOX */}
-      {showHelp && (
-        <div className="p-4 bg-muted border-b border-border vibe-container">
-          <div className="vibe-card p-4 space-y-2">
-            <h2 className="font-display font-bold text-sm uppercase tracking-wider text-primary">
-              Erişilebilirlik ve Engelsiz Kullanım Rehberi
-            </h2>
-            <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4 font-sans">
-              <li><strong>Yüksek Kontrast:</strong> Az gören bireyler için arka planı siyah, metinleri beyaz yapar (WCAG AAA uyumlu).</li>
-              <li><strong>Yazı Boyutu:</strong> Okuma güçlüğü çekenler için tüm arayüz metin boyutlarını büyütür.</li>
-              <li><strong>Sesli Okuma (Hoparlör):</strong> Asistanın yanıtlarının yanındaki hoparlör simgesine tıklayarak metni sesli dinleyebilirsiniz.</li>
-              <li><strong>Sesli Giriş (Mikrofon):</strong> Giriş alanındaki mikrofon simgesine tıklayarak konuşabilir, klavye kullanmadan yazabilirsiniz.</li>
-              <li><strong>Geometrik Tasarım:</strong> Tüm düğmeler kolay tıklama için minimum 48px yüksekliğe ve keskin 4px (rounded-custom) köşelere sahiptir.</li>
-            </ul>
-          </div>
-        </div>
-      )}
+      {/* ACCESSIBILITY & SYSTEM HELP CARD */}
+      <AnimatePresence>
+        {showHelp && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="p-4 bg-slate-900/90 border-b border-teal-500/30 z-10 backdrop-blur-md"
+          >
+            <div className="max-w-4xl mx-auto space-y-3">
+              <div className="flex items-center gap-2 text-teal-400">
+                <HelpCircle size={18} />
+                <h2 className="font-display font-bold text-sm uppercase tracking-wider">
+                  Erişilebilirlik ve Engelsiz Kullanım Kılavuzu
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-muted-foreground">
+                <div className="p-3 bg-slate-950/60 rounded-custom border border-border/40 space-y-1">
+                  <span className="font-bold text-teal-300 block">♿ Yüksek Kontrast & Tipografi:</span>
+                  <p className="leading-relaxed">Az gören bireyler için tam WCAG AAA siyah-sarı uyumlu kontrast modu ve 3 kademeli metin büyütme desteği mevcuttur.</p>
+                </div>
+                <div className="p-3 bg-slate-950/60 rounded-custom border border-border/40 space-y-1">
+                  <span className="font-bold text-teal-300 block">🎙️ Sesli Çift Yönlü İletişim:</span>
+                  <p className="leading-relaxed">Mikrofon düğmesine tıklayarak sesli soru sorabilir, asistan yanıtlarının yanındaki hoparlör simgesiyle sesli dinleyebilirsiniz.</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* MAIN CHAT ZONE */}
-      <main className="flex-1 overflow-y-auto p-4 md:p-6 flex justify-center bg-background">
-        <div className="w-full max-w-3xl space-y-6">
+      {/* MAIN CHAT CONTAINER */}
+      <main className="flex-1 overflow-y-auto p-3 sm:p-5 md:p-6 flex justify-center">
+        <div className="w-full max-w-4xl space-y-6">
+          
+          {/* WELCOME AI HERO CARD (If only 1 default message) */}
+          {messages.length === 1 && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="ai-glass-panel p-5 sm:p-7 space-y-6 border border-teal-500/30 relative overflow-hidden group shadow-2xl"
+            >
+              <div className="absolute -right-16 -top-16 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute -left-16 -bottom-16 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+              {/* Central Glowing Orb & Intro */}
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+                <div className="relative flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-teal-500/30 via-cyan-500/20 to-slate-900 border border-teal-400/40 text-teal-300 shadow-2xl flex-shrink-0">
+                  <div className="absolute inset-0 rounded-2xl bg-teal-400/10 animate-pulse"></div>
+                  <Sparkles size={36} className="text-teal-300 animate-spin-slow" />
+                </div>
+
+                <div className="space-y-2 text-center sm:text-left">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full bg-teal-500/15 text-teal-300 text-[10px] font-mono font-bold border border-teal-500/30 uppercase tracking-widest flex items-center gap-1">
+                      <Zap size={11} /> Resmi Yapay Zeka Rehberi
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-mono font-bold border border-slate-700">
+                      Bağcılar Belediyesi
+                    </span>
+                  </div>
+
+                  <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-tight">
+                    Feyzullah Kıyıklık Engelliler Sarayı Akıllı Asistanı
+                  </h2>
+
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-2xl">
+                    Kurumumuz bünyesinde sunulan tüm eğitim atölyeleri, rehabilitasyon servisleri, başvuru belgeleri, ulaşım hatları ve engelli hakları konusunda 7/24 kesintisiz bilgi alabilirsiniz.
+                  </p>
+                </div>
+              </div>
+
+              {/* System Capabilities Chips */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-border/40">
+                <div className="p-2.5 rounded-custom bg-muted/40 border border-border/40 flex items-center gap-2">
+                  <Zap size={14} className="text-teal-400 flex-shrink-0" />
+                  <span className="text-[11px] font-semibold text-muted-foreground">Anında Akışlı Yanıt</span>
+                </div>
+                <div className="p-2.5 rounded-custom bg-muted/40 border border-border/40 flex items-center gap-2">
+                  <Volume2 size={14} className="text-teal-400 flex-shrink-0" />
+                  <span className="text-[11px] font-semibold text-muted-foreground">Türkçe Sesli Okuma</span>
+                </div>
+                <div className="p-2.5 rounded-custom bg-muted/40 border border-border/40 flex items-center gap-2">
+                  <Mic size={14} className="text-teal-400 flex-shrink-0" />
+                  <span className="text-[11px] font-semibold text-muted-foreground">Sesle Komut Verme</span>
+                </div>
+                <div className="p-2.5 rounded-custom bg-muted/40 border border-border/40 flex items-center gap-2">
+                  <Eye size={14} className="text-teal-400 flex-shrink-0" />
+                  <span className="text-[11px] font-semibold text-muted-foreground">WCAG AAA Erişilebilir</span>
+                </div>
+              </div>
+
+              {/* Quick Prompt Cards */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2 text-xs font-mono font-bold text-muted-foreground uppercase tracking-wider">
+                  <Activity size={14} className="text-teal-400" />
+                  <span>Sık Sorulan Konular ve Hızlı Başlangıç</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {SUGGESTIONS.map((s, idx) => {
+                    const IconComp = s.icon;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => sendMessage(s.query)}
+                        className="text-left p-3.5 ai-glass-panel hover:bg-teal-500/10 hover:border-teal-500/50 transition-all active:scale-[0.98] cursor-pointer group flex items-start gap-3 border border-border/60"
+                      >
+                        <div className="p-2 rounded-custom bg-teal-500/10 text-teal-400 border border-teal-500/20 group-hover:bg-teal-500 group-hover:text-slate-950 transition-colors flex-shrink-0 mt-0.5">
+                          <IconComp size={16} />
+                        </div>
+                        <div className="space-y-0.5 flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-foreground group-hover:text-teal-300 transition-colors truncate">
+                              {s.title}
+                            </span>
+                            <Sparkles size={12} className="text-teal-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-1" />
+                          </div>
+                          <p className="text-[11px] text-muted-foreground line-clamp-1">
+                            {s.desc}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* CHAT MESSAGES DISPLAY */}
           <AnimatePresence initial={false}>
             {messages.map(m => (
               <motion.div 
                 key={m.id} 
-                initial={{ opacity: 0, y: 10 }} 
-                animate={{ opacity: 1, y: 0 }} 
+                initial={{ opacity: 0, y: 12, scale: 0.99 }} 
+                animate={{ opacity: 1, y: 0, scale: 1 }} 
+                transition={{ duration: 0.2 }}
                 className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div 
-                  className={`vibe-card p-4 max-w-[95%] sm:max-w-[85%] md:max-w-[75%] space-y-3 ${
+                  className={`p-4 md:p-5 max-w-[95%] sm:max-w-[88%] md:max-w-[82%] space-y-3.5 shadow-xl transition-all ${
                     m.role === 'user' 
-                      ? 'bg-primary text-primary-foreground border-primary' 
-                      : 'bg-card text-foreground border-border'
+                      ? 'bg-gradient-to-br from-teal-600 via-teal-700 to-cyan-700 text-white border border-teal-400/30 rounded-2xl rounded-tr-none' 
+                      : 'ai-glass-panel text-foreground border-l-4 border-l-teal-400 border-border/60 rounded-2xl rounded-tl-none'
                   }`}
-                  style={{ borderRadius: 'var(--radius)' }}
                 >
+                  {/* Message Header Identity Badge */}
+                  <div className="flex items-center justify-between gap-2 border-b border-border/30 pb-2">
+                    <div className="flex items-center gap-2">
+                      {m.role === 'user' ? (
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-teal-100 flex items-center gap-1">
+                          <span className="h-1.5 w-1.5 rounded-full bg-cyan-300"></span>
+                          <span>MİSAFİR KULLANICI</span>
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
+                          <Bot size={13} className="text-teal-400" />
+                          <span>ENGELSİZAI // YAPAY ZEKA</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {m.role === 'assistant' && (
+                      <span className="text-[9px] font-mono text-muted-foreground/80 bg-muted/60 px-1.5 py-0.5 rounded border border-border/30">
+                        GEMINI 3.1 FLASH LITE
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Markdown Text Body */}
                   <div className={`prose max-w-none break-words w-full overflow-x-auto ${getBodyTextClass()}`}>
                     <Markdown remarkPlugins={[remarkGfm]}>
                       {m.text.replace(/<br\s*\/?>/gi, '\n')}
                     </Markdown>
                   </div>
 
-                  {/* Message Action Bar (Speak / Copy) */}
+                  {/* Message Action Bar (Speak & Copy) */}
                   <div className="flex items-center justify-between gap-4 border-t border-border/20 pt-2 text-xs">
-                    <span className="font-mono text-[9px] opacity-60 tracking-wider uppercase font-bold">
-                      {m.role === 'user' ? 'MİSAFİR' : 'ENGELSİZASİSTAN'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {/* Audio visualizer spectrum when speaking */}
+                      {speakingId === m.id && (
+                        <div className="flex items-center gap-0.5 h-3 px-1">
+                          <div className="w-1 bg-teal-400 rounded-full audio-bar" style={{ animationDelay: '0s' }}></div>
+                          <div className="w-1 bg-teal-400 rounded-full audio-bar" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="w-1 bg-teal-400 rounded-full audio-bar" style={{ animationDelay: '0.4s' }}></div>
+                        </div>
+                      )}
+                    </div>
                     
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       {/* Read out loud button */}
                       {m.role === 'assistant' && (
                         <button
                           onClick={() => speakText(m.text, m.id)}
                           aria-label={speakingId === m.id ? "Okumayı Durdur" : "Sesli Oku"}
-                          className="p-1.5 rounded-custom hover:bg-muted text-foreground transition-colors flex items-center gap-1"
+                          className="px-2.5 py-1 rounded-custom hover:bg-teal-500/20 text-teal-300 transition-colors flex items-center gap-1.5 border border-teal-500/30 cursor-pointer"
                         >
                           {speakingId === m.id ? (
                             <>
-                              <Square size={14} className="text-red-500 animate-pulse" />
-                              <span className="text-[10px] uppercase font-bold tracking-wider">Durdur</span>
+                              <Square size={13} className="text-red-400 animate-pulse" />
+                              <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-red-400">DURDUR</span>
                             </>
                           ) : (
                             <>
-                              <Volume2 size={14} className="text-primary" />
-                              <span className="text-[10px] uppercase font-bold tracking-wider">Dinle</span>
+                              <Volume2 size={13} className="text-teal-400" />
+                              <span className="text-[10px] font-mono uppercase font-bold tracking-wider">SESLİ OKU</span>
                             </>
                           )}
                         </button>
@@ -467,17 +657,17 @@ export default function App() {
                       <button
                         onClick={() => copyToClipboard(m.text, m.id)}
                         aria-label="Mesajı Kopyala"
-                        className="p-1.5 rounded-custom hover:bg-muted text-foreground transition-colors flex items-center gap-1"
+                        className="px-2.5 py-1 rounded-custom hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 border border-border/40 cursor-pointer"
                       >
                         {copiedId === m.id ? (
                           <>
-                            <Check size={14} className="text-green-500" />
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-green-500">Kopyalandı</span>
+                            <Check size={13} className="text-emerald-400" />
+                            <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-emerald-400">KOPYALANDI</span>
                           </>
                         ) : (
                           <>
-                            <Copy size={14} className="opacity-70" />
-                            <span className="text-[10px] uppercase font-bold tracking-wider">Kopyala</span>
+                            <Copy size={13} className="opacity-70" />
+                            <span className="text-[10px] font-mono uppercase font-bold tracking-wider">KOPYALA</span>
                           </>
                         )}
                       </button>
@@ -488,84 +678,36 @@ export default function App() {
             ))}
           </AnimatePresence>
 
-          {!apiKey && (
-            <div className="vibe-card p-6 bg-amber-500/10 border border-amber-500/20 text-foreground space-y-4 rounded-custom animate-pulse">
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-amber-500 text-white rounded-custom mt-0.5 flex-shrink-0">
-                  <Key size={18} />
-                </div>
-                <div className="space-y-1.5">
-                  <h3 className="font-display font-bold text-sm uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                    Sohbeti Başlatmak İçin API Anahtarı Gerekli
-                  </h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Bu yapay zeka asistanı doğrudan resmi Google Gemini API altyapısını kullanır. Ücretsiz sohbet etmeye başlamak için lütfen kendinize ait bir API anahtarı girin.
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <button
-                  onClick={() => setShowApiKeyModal(true)}
-                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-mono text-[11px] font-bold uppercase tracking-wider rounded-custom active:scale-95 transition-all cursor-pointer"
-                >
-                  🔑 ANAHTARI GİRİN
-                </button>
-                <a
-                  href="https://aistudio.google.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground font-mono text-[11px] font-bold uppercase tracking-wider rounded-custom active:scale-95 transition-all border border-border inline-flex items-center gap-1"
-                >
-                  Ücretsiz Anahtar Al ↗
-                </a>
-              </div>
-            </div>
-          )}
-
-          {messages.length === 1 && !isLoading && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-              {SUGGESTIONS.map((s, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => sendMessage(s.query)}
-                  className="text-left p-3 vibe-card hover:bg-muted bg-card border border-border transition-all active:scale-95 flex items-center justify-between text-xs font-semibold cursor-pointer group"
-                  style={{ borderRadius: 'var(--radius)' }}
-                >
-                  <span className="group-hover:text-primary transition-colors">{s.text}</span>
-                  <Sparkles size={14} className="text-primary opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all flex-shrink-0 ml-2" />
-                </button>
-              ))}
-            </div>
-          )}
-
+          {/* MISSING API KEY WARNING CARD */}
+          {/* LOADING STATE INDICATOR */}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="vibe-card p-4 bg-card text-foreground border-border flex flex-col gap-2 min-w-[200px]">
+              <div className="ai-glass-panel p-4 text-foreground border-l-4 border-l-teal-400 border-border/60 flex flex-col gap-2 min-w-[220px] rounded-2xl">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-2 w-2 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                  <span className="flex h-2.5 w-2.5 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-teal-500"></span>
                   </span>
-                  <span className={`text-xs font-mono font-bold tracking-wider text-primary uppercase`}>
-                    Düşünüyor
+                  <span className="text-xs font-mono font-bold tracking-wider text-teal-400 uppercase flex items-center gap-1.5">
+                    <Cpu size={14} className="animate-spin-slow" />
+                    <span>Nöral Yanıt Üretiliyor</span>
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 pt-1">
                   <motion.span 
-                    animate={{ y: [0, -4, 0] }}
+                    animate={{ y: [0, -5, 0] }}
                     transition={{ repeat: Infinity, duration: 0.6, delay: 0 }}
-                    className="h-1.5 w-1.5 rounded-full bg-primary opacity-40"
+                    className="h-2 w-2 rounded-full bg-teal-400"
                   />
                   <motion.span 
-                    animate={{ y: [0, -4, 0] }}
+                    animate={{ y: [0, -5, 0] }}
                     transition={{ repeat: Infinity, duration: 0.6, delay: 0.15 }}
-                    className="h-1.5 w-1.5 rounded-full bg-primary opacity-70"
+                    className="h-2 w-2 rounded-full bg-teal-400"
                   />
                   <motion.span 
-                    animate={{ y: [0, -4, 0] }}
+                    animate={{ y: [0, -5, 0] }}
                     transition={{ repeat: Infinity, duration: 0.6, delay: 0.3 }}
-                    className="h-1.5 w-1.5 rounded-full bg-primary opacity-100"
+                    className="h-2 w-2 rounded-full bg-teal-400"
                   />
                 </div>
               </div>
@@ -575,166 +717,63 @@ export default function App() {
         </div>
       </main>
 
-      {/* FOOTER CONTROLS */}
-      <footer className="flex-none p-4 bg-card border-t border-border">
-        {/* Voice Input Active Banner */}
+      {/* FOOTER COMMAND DOCK */}
+      <footer className="flex-none p-3.5 sm:p-4 ai-glass-panel border-t border-border shadow-2xl z-20">
+        {/* Dynamic Voice Recording Equalizer Banner */}
         {isListening && (
-          <div className="max-w-3xl mx-auto mb-2 px-3 py-1.5 bg-primary/10 border border-primary text-primary text-xs font-bold uppercase tracking-wider flex items-center gap-2 rounded-custom animate-pulse">
-            <Mic size={14} className="text-primary animate-bounce" />
-            <span>Mikrofon Aktif: Konuşun, sesiniz yazıya dökülüyor...</span>
+          <div className="max-w-4xl mx-auto mb-2 px-3.5 py-2 bg-teal-500/15 border border-teal-500/40 text-teal-300 text-xs font-bold uppercase tracking-wider flex items-center justify-between gap-2 rounded-custom animate-pulse">
+            <div className="flex items-center gap-2">
+              <Mic size={15} className="text-teal-400 animate-bounce" />
+              <span>Mikrofon Dinliyor: Sorunuzu Söyleyin...</span>
+            </div>
+            <div className="flex items-center gap-1 h-3">
+              <div className="w-1 bg-teal-400 rounded-full audio-bar" style={{ animationDelay: '0s' }}></div>
+              <div className="w-1 bg-teal-400 rounded-full audio-bar" style={{ animationDelay: '0.15s' }}></div>
+              <div className="w-1 bg-teal-400 rounded-full audio-bar" style={{ animationDelay: '0.3s' }}></div>
+              <div className="w-1 bg-teal-400 rounded-full audio-bar" style={{ animationDelay: '0.45s' }}></div>
+            </div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex gap-2 max-w-3xl mx-auto items-stretch">
-          {/* Voice Input Button */}
+        <form onSubmit={handleSubmit} className="flex gap-2 max-w-4xl mx-auto items-stretch">
+          {/* Speech-to-Text Button */}
           <button
             type="button"
             onClick={toggleListening}
             aria-label={isListening ? "Sesli Girişi Kapat" : "Sesli Giriş Yap (Mikrofon)"}
-            className={`px-3 flex items-center justify-center border transition-all active:scale-95 rounded-custom h-12 min-w-[48px] ${
+            className={`px-3.5 flex items-center justify-center border transition-all active:scale-95 rounded-custom h-12 min-w-[48px] cursor-pointer ${
               isListening 
-                ? 'bg-red-600 text-white border-red-700 animate-pulse' 
-                : 'bg-muted text-foreground hover:bg-muted/80 border-border'
+                ? 'bg-red-600 text-white border-red-500 shadow-lg shadow-red-600/30 animate-pulse' 
+                : 'bg-muted/80 text-foreground hover:bg-teal-500/15 hover:border-teal-500/40 border-border/60'
             }`}
           >
-            {isListening ? <MicOff size={20} /> : <Mic size={20} className="text-primary" />}
+            {isListening ? <MicOff size={20} /> : <Mic size={20} className="text-teal-400" />}
           </button>
 
-          {/* Text Input Field */}
+          {/* Text Input Control */}
           <input 
             value={input} 
             onChange={e => setInput(e.target.value)} 
-            placeholder="Mesajınızı buraya yazın veya seslendirin..."
+            placeholder="Mesajınızı buraya yazın veya mikrofonla seslendirin..."
             aria-label="Mesaj Giriş Kutusu"
-            className={`flex-1 p-3 bg-card border border-border text-foreground outline-none transition-all duration-200 focus:ring-4 focus:ring-primary/10 focus:border-primary h-12 ${getBodyTextClass()}`}
+            className={`flex-1 px-4 py-3 bg-slate-950/80 border border-border/80 text-foreground outline-none transition-all duration-200 focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 h-12 ${getBodyTextClass()}`}
             style={{ borderRadius: 'var(--radius)' }}
           />
 
-          {/* Send Button */}
+          {/* Submit Button */}
           <button 
             type="submit" 
             disabled={isLoading || !input.trim()} 
             aria-label="Mesajı Gönder"
-            className="px-4 bg-primary text-primary-foreground hover:brightness-110 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-2 h-12 min-w-[48px]"
+            className="px-5 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-slate-950 font-bold active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-2 h-12 min-w-[52px] shadow-lg shadow-teal-500/20 cursor-pointer"
             style={{ borderRadius: 'var(--radius)' }}
           >
-            {isLoading ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
-            <span className={`hidden sm:inline ${getButtonTextClass()}`}>GÖNDER</span>
+            {isLoading ? <Loader2 className="animate-spin text-slate-950" size={20} /> : <Send size={20} className="text-slate-950" />}
+            <span className={`hidden sm:inline font-mono ${getButtonTextClass()}`}>GÖNDER</span>
           </button>
         </form>
       </footer>
-
-      {/* API KEY CONFIGURATION MODAL */}
-      <AnimatePresence>
-        {showApiKeyModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowApiKeyModal(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-            
-            {/* Modal Box */}
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-card border border-border rounded-custom shadow-2xl p-6 overflow-hidden z-10"
-            >
-              <div className="flex items-center gap-3 border-b border-border pb-4 mb-4">
-                <div className="p-2 bg-primary/10 text-primary rounded-custom">
-                  <Key size={20} />
-                </div>
-                <div>
-                  <h2 className="font-display font-bold text-base text-foreground tracking-tight uppercase">
-                    Gemini API Anahtarı
-                  </h2>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                    Kişisel Yapay Zeka Altyapısı
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="p-3 bg-muted rounded-custom space-y-1.5 border border-border">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-primary">Nasıl Ücretsiz Anahtar Alınır?</h3>
-                  <ol className="text-xs text-muted-foreground space-y-1 list-decimal pl-4 leading-relaxed">
-                    <li><a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-semibold">Google AI Studio</a> web sitesine gidin.</li>
-                    <li>Google hesabınızla ücretsiz giriş yapın.</li>
-                    <li><strong>"Get API Key"</strong> düğmesine tıklayın.</li>
-                    <li>Oluşturduğunuz anahtarı kopyalayıp aşağıdaki alana yapıştırın.</li>
-                  </ol>
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="api-key-input" className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-                    <span>API ANAHTARI</span>
-                    <span className="text-[10px] lowercase text-emerald-500 font-mono">tarayıcınızda yerel saklanır</span>
-                  </label>
-                  <div className="relative flex items-center">
-                    <input
-                      id="api-key-input"
-                      type={showPassword ? "text" : "password"}
-                      value={apiKey}
-                      onChange={(e) => {
-                        const val = e.target.value.trim();
-                        setApiKey(val);
-                        localStorage.setItem('gemini_api_key', val);
-                      }}
-                      placeholder="AIzaSy..."
-                      className="w-full p-3 pr-10 bg-muted border border-border text-foreground outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-xs font-mono rounded-custom"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 text-muted-foreground hover:text-foreground transition-colors"
-                      aria-label={showPassword ? "Anahtarı Gizle" : "Anahtarı Göster"}
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
-
-                {apiKey ? (
-                  <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-custom flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Anahtar başarıyla kaydedildi! Sohbet etmeye başlayabilirsiniz.</span>
-                  </div>
-                ) : (
-                  <div className="p-2.5 bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 text-xs font-bold rounded-custom flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
-                    <span>Anahtar henüz girilmedi. Lütfen bir anahtar girin.</span>
-                  </div>
-                )}
-
-                <div className="flex gap-2 justify-end pt-2">
-                  <button
-                    onClick={() => setShowApiKeyModal(false)}
-                    className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground font-mono text-[11px] font-bold uppercase tracking-wider rounded-custom active:scale-95 transition-all cursor-pointer"
-                  >
-                    Kapat
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (!apiKey) {
-                        alert("Lütfen önce geçerli bir API anahtarı yapıştırın.");
-                        return;
-                      }
-                      setShowApiKeyModal(false);
-                    }}
-                    className="px-4 py-2 bg-primary text-primary-foreground hover:brightness-110 font-mono text-[11px] font-bold uppercase tracking-wider rounded-custom active:scale-95 transition-all cursor-pointer"
-                  >
-                    Kaydet ve Başlat
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
+

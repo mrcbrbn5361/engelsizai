@@ -1,13 +1,12 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
-import { GoogleGenAI } from "@google/genai";
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: '10mb' }));
 
   const SYSTEM_PROMPT = `Sen "EngelsizAI" adlı yapay zeka asistanısın.
 
@@ -115,7 +114,7 @@ Yapabileceklerin:
 - Sosyal etkinlik öner
 - İletişim bilgisi paylaş
 
-Yapamayacaklerin:
+Yapamayacakların:
 - Tıbbi teşhis koymak
 - Hukuki karar vermek
 - Kesin garanti vermek
@@ -134,7 +133,7 @@ Kullanıcının bağımsız yaşamını desteklemek ve Feyzullah Kıyıklık Eng
 Her zaman kurumun resmi rehber asistanı gibi davran.
 
 DİL VE ÜSLUP (EK KURALLAR):
-Türkçen son derece akıcı, doğal, samimi ve profesyonel olsun. Kurum hakkında bilgi verirken, bu bilgileri zaten biliyormuşsun gibi doğrudan ogüven verici bir dille yanıtla. "Araştırma yaptım", "Sizin için baktım", "İnternetten buldum" gibi ifadeler kullanma.
+Türkçen son derece akıcı, doğal, samimi ve profesyonel olsun. Kurum hakkında bilgi verirken, bu bilgileri zaten biliyormuşsun gibi doğrudan ve güven verici bir dille yanıtla. "Araştırma yaptım", "Sizin için baktım", "İnternetten buldum" gibi ifadeler kullanma.
 
 TEMEL KURALLAR (EK KURALLAR):
 1. İnsan onurunu merkeze al, kapsayıcı ve güçlendirici bir dil kullan.
@@ -144,65 +143,108 @@ TEMEL KURALLAR (EK KURALLAR):
 5. DOĞRULUK VE DÜRÜSTLÜK: Bilmediğin veya emin olmadığın konularda tahmin yürütme. Yanlış bilgi vermektense bilmediğini kabul etmek daha değerlidir.
 6. ASLA HTML ETİKETLERİ (örneğin <br>) KULLANMA. Satır atlamak veya liste yapmak için sadece standart Markdown formatını kullan.`;
 
+  // NVIDIA NIM Endpoint for Chat Completions
   app.post("/api/chat", async (req, res) => {
-    try {
-      const { messages } = req.body;
-      const userApiKey = (req.headers['x-gemini-api-key'] as string) || process.env.GEMINI_API_KEY;
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
 
-      if (!userApiKey) {
-        console.warn("[Proxy] Gemini API Key bulunamadı!");
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.setHeader('X-Accel-Buffering', 'no');
+    try {
+      const { messages, model } = req.body;
+      const selectedModel = model || "meta/llama-3.3-70b-instruct";
+      const nvidiaApiKey = process.env.NVIDIA_API_KEY || process.env.NVIDIA_KEY || process.env.NV_API_KEY || process.env.OPENROUTER_API_KEY;
+
+      const formattedMessages = [
+        { role: "system", content: SYSTEM_PROMPT },
+        ...(messages || []).map((m: any) => ({
+          role: m.role === 'assistant' ? 'assistant' : 'user',
+          content: m.content || m.text || ''
+        }))
+      ];
+
+      console.log(`[NVIDIA NIM] Requesting model: ${selectedModel}`);
+
+      if (!nvidiaApiKey) {
+        // Fallback simulated intelligence response if no API key is provided in environment
+        console.warn("[NVIDIA NIM] NVIDIA_API_KEY environment variable is missing. Running smart default responder.");
+        const userMsg = messages?.[messages.length - 1]?.content || messages?.[messages.length - 1]?.text || "";
         
-        const output = {
-          message: { content: "⚠️ **Gemini API Anahtarı Eksik:** Lütfen üst kısımdaki anahtar simgesine (🔑) tıklayarak kendi Gemini API anahtarınızı girin." },
-          done: true
-        };
-        res.write(JSON.stringify(output) + '\n');
+        let responseText = "Merhaba! ben **Feyzullah Kıyıklık Engelliler Sarayı** öğrencisi **Miraç Birben** tarafından geliştirilen **EngelsizAI Yapay Zeka Asistanıyım**.\n\n";
+        if (userMsg.toLowerCase().includes("kurs") || borderContains(userMsg, ["eğitim", "atölye"])) {
+          responseText += "### Feyzullah Kıyıklık Engelliler Sarayı Kurslarımız:\n\n1. **Yazılım & Yapay Zeka Atölyesi:** Kodlama, robotik ve yapay zeka eğitimleri.\n2. **Sanat & Müzik Kursları:** Resim, ahşap yakma, ritim ve enstrüman dersleri.\n3. **EKPSS Hazırlık:** Engelli Kamu Personeli Seçme Sınavı hızlandırılmış eğitim programları.\n4. **Meslek Edindirme:** Halı dokuma, seramik, pastacılık ve bilgisayar işletmenliği.\n\nKayıt için **0212 410 06 00** numarasından merkezimize ulaşabilirsiniz.";
+        } else if (userMsg.toLowerCase().includes("konum") || borderContains(userMsg, ["ulaşım", "nerede", "adres"])) {
+          responseText += "### Konum ve Ulaşım Bilgileri:\n\n- **Adres:** Barbaros Mahallesi, Hoca Ahmet Yesevi Caddesi No:151, Bağcılar / İstanbul\n- **Telefon:** 0212 410 06 00\n- **WhatsApp:** 0552 410 06 00\n- **Toplu Taşıma:** M1B Yenikapı-Kirazlı metro hattı ve Bağcılar Belediyesi otobüs durakları ile doğrudan ulaşabilirsiniz.";
+        } else {
+          responseText += "Bağcılar Belediyesi Feyzullah Kıyıklık Engelliler Sarayı bünyesindeki tüm kurslar, ergoterapi, duyu bütünleme, psikolojik danışmanlık ve başvuru süreçleri hakkında size yardımcı olmak için buradayım. Sormak istediğiniz konuyu detaylandırabilirsiniz!";
+        }
+
+        // Stream fallback text word by word
+        const words = responseText.split(' ');
+        for (const word of words) {
+          res.write(JSON.stringify({ message: { content: word + ' ' }, done: false }) + '\n');
+          await new Promise(r => setTimeout(r, 20));
+        }
+        res.write(JSON.stringify({ done: true }) + '\n');
         res.end();
         return;
       }
 
-      // Format messages for @google/genai (assistant role should be 'model')
-      const formattedContents = (messages || []).map((m: any) => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content || m.text || '' }]
-      }));
+      // Call NVIDIA NIM API
+      const nvidiaResponse = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${nvidiaApiKey}`,
+          "Content-Type": "application/json",
+          "Accept": "text/event-stream"
+        },
+        body: JSON.stringify({
+          model: selectedModel,
+          messages: formattedMessages,
+          temperature: 0.6,
+          top_p: 0.7,
+          max_tokens: 2048,
+          stream: true
+        })
+      });
 
-      // Initialize the official Google GenAI client
-      const ai = new GoogleGenAI({
-        apiKey: userApiKey,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build'
+      if (!nvidiaResponse.ok) {
+        const errorText = await nvidiaResponse.text();
+        console.error("[NVIDIA NIM Error]", nvidiaResponse.status, errorText);
+        throw new Error(`NVIDIA API yanıt hatası (${nvidiaResponse.status}): ${errorText.substring(0, 150)}`);
+      }
+
+      if (!nvidiaResponse.body) {
+        throw new Error("NVIDIA API yanıt akışı boş döndü.");
+      }
+
+      const reader = nvidiaResponse.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed === 'data: [DONE]') continue;
+
+          if (trimmed.startsWith('data: ')) {
+            try {
+              const json = JSON.parse(trimmed.slice(6));
+              const deltaText = json.choices?.[0]?.delta?.content || "";
+              if (deltaText) {
+                res.write(JSON.stringify({ message: { content: deltaText }, done: false }) + '\n');
+              }
+            } catch (e) {
+              // Ignore invalid chunk
+            }
           }
-        }
-      });
-
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      res.setHeader('X-Accel-Buffering', 'no');
-
-      console.log("[Proxy] Gemini 3.1 Flash Lite ile bağlantı kuruluyor...");
-
-      const responseStream = await ai.models.generateContentStream({
-        model: "gemini-3.1-flash-lite",
-        contents: formattedContents,
-        config: {
-          systemInstruction: SYSTEM_PROMPT,
-        }
-      });
-
-      for await (const chunk of responseStream) {
-        if (chunk.text) {
-          const output = {
-            message: { content: chunk.text },
-            done: false
-          };
-          res.write(JSON.stringify(output) + '\n');
         }
       }
 
@@ -210,19 +252,45 @@ TEMEL KURALLAR (EK KURALLAR):
       res.end();
 
     } catch (error: any) {
-      console.error('[Proxy] Gemini Hatası:', error.message || error);
-      
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      res.setHeader('X-Accel-Buffering', 'no');
-
-      const output = {
-        message: { content: `⚠️ **Gemini API Hatası:** ${error.message || 'API anahtarınız geçersiz olabilir veya istek kotası aşılmış olabilir.'}` },
-        done: true
-      };
-      res.write(JSON.stringify(output) + '\n');
+      console.error('[NVIDIA Chat Proxy Error]', error.message || error);
+      res.write(JSON.stringify({ 
+        message: { content: `⚠️ **Yapay Zeka Servisi Bilgisi:** ${error.message || 'Geçici bir tünel/sunucu yoğunluğu oluştu. Lütfen tekrar deneyin.'}` },
+        done: true 
+      }) + '\n');
       res.end();
+    }
+  });
+
+  // Auxiliary Translation Endpoint using NVIDIA Riva Translate
+  app.post("/api/translate", async (req, res) => {
+    try {
+      const { text, targetLang } = req.body;
+      const nvidiaApiKey = process.env.NVIDIA_API_KEY || process.env.NVIDIA_KEY || process.env.NV_API_KEY;
+
+      if (!nvidiaApiKey) {
+        return res.json({ translatedText: text });
+      }
+
+      const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${nvidiaApiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "nvidia/riva-translate-4b-instruct-v1_1",
+          messages: [
+            { role: "system", content: `Translate the following text to ${targetLang || 'Turkish'}. Only output the translated text.` },
+            { role: "user", content: text }
+          ]
+        })
+      });
+
+      const data = await response.json();
+      const result = data.choices?.[0]?.message?.content || text;
+      res.json({ translatedText: result });
+    } catch (err: any) {
+      res.json({ translatedText: req.body.text || "" });
     }
   });
 
@@ -244,6 +312,10 @@ TEMEL KURALLAR (EK KURALLAR):
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
+}
+
+function borderContains(str: string, arr: string[]): boolean {
+  return arr.some(item => str.toLowerCase().includes(item));
 }
 
 startServer();

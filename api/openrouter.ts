@@ -139,66 +139,97 @@ TEMEL KURALLAR (EK KURALLAR):
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Gemini-API-Key');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { messages, message } = req.body;
-    const userApiKey = (req.headers['x-gemini-api-key'] as string) || process.env.GEMINI_API_KEY;
+    const { messages, message, model } = req.body;
+    const selectedModel = model || "meta/llama-3.3-70b-instruct";
+    const nvidiaApiKey = process.env.NVIDIA_API_KEY || process.env.NVIDIA_KEY || process.env.NV_API_KEY;
 
-    if (!userApiKey) {
-      return res.status(400).json({ 
-        error: "Missing API Key", 
-        message: "Lütfen üst kısımdaki anahtar simgesine (🔑) tıklayarak kendi Gemini API anahtarınızı girin." 
-      });
-    }
-
-    // Adapt format (support both { messages } and { message })
-    let formattedContents = [];
+    let formattedMessages = [];
     if (messages && Array.isArray(messages)) {
-      formattedContents = messages.map((m: any) => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content || m.text || '' }]
+      formattedMessages = messages.map((m: any) => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content || m.text || ''
       }));
     } else if (message) {
-      formattedContents = [{
+      formattedMessages = [{
         role: 'user',
-        parts: [{ text: message }]
+        content: message
       }];
     }
 
-    const ai = new GoogleGenAI({
-      apiKey: userApiKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build'
-        }
-      }
-    });
+    const payloadMessages = [
+      { role: 'system', content: SYSTEM_PROMPT },
+      ...formattedMessages
+    ];
 
-    // For serverless context, we will support standard chunked response streaming
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
 
-    const responseStream = await ai.models.generateContentStream({
-      model: "gemini-3.1-flash-lite",
-      contents: formattedContents,
-      config: {
-        systemInstruction: SYSTEM_PROMPT,
-      }
+    if (!nvidiaApiKey) {
+      const responseText = "Merhaba! Feyzullah Kıyıklık Engelliler Sarayı Yapay Zeka Asistanıyım. Sorularınızı yanıtlamaya hazırım!";
+      res.write(JSON.stringify({ message: { content: responseText }, done: true }) + '\n');
+      res.end();
+      return;
+    }
+
+    const nvidiaResponse = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${nvidiaApiKey}`,
+        "Content-Type": "application/json",
+        "Accept": "text/event-stream"
+      },
+      body: JSON.stringify({
+        model: selectedModel,
+        messages: payloadMessages,
+        temperature: 0.6,
+        top_p: 0.7,
+        max_tokens: 2048,
+        stream: true
+      })
     });
 
-    for await (const chunk of responseStream) {
-      if (chunk.text) {
-        const output = {
-          message: { content: chunk.text },
-          done: false
-        };
-        res.write(JSON.stringify(output) + '\n');
+    if (!nvidiaResponse.ok) {
+      throw new Error(`NVIDIA API status: ${nvidiaResponse.status}`);
+    }
+
+    if (!nvidiaResponse.body) {
+      throw new Error("No response body");
+    }
+
+    const reader = (nvidiaResponse.body as any).getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed === 'data: [DONE]') continue;
+
+        if (trimmed.startsWith('data: ')) {
+          try {
+            const json = JSON.parse(trimmed.slice(6));
+            const deltaText = json.choices?.[0]?.delta?.content || "";
+            if (deltaText) {
+              res.write(JSON.stringify({ message: { content: deltaText }, done: false }) + '\n');
+            }
+          } catch (e) {
+            // skip
+          }
+        }
       }
     }
 
@@ -206,10 +237,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.end();
 
   } catch (error: any) {
-    console.error('[Vercel Serverless] Gemini Hatası:', error);
-    res.status(500).json({ 
-      error: error.message || 'Bilinmeyen bir hata oluştu',
-      details: error.toString() 
-    });
+    console.error('[Vercel Serverless] NVIDIA NIM Error:', error);
+    res.write(JSON.stringify({ 
+      message: { content: `⚠️ **Yapay Zeka Servisi:** ${error.message || 'Yanıt alınırken hata oluştu.'}` },
+      done: true 
+    }) + '\n');
+    res.end();
   }
 }

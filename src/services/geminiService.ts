@@ -1,22 +1,40 @@
 const API_BASE = '';
 
+export const NVIDIA_MODELS = [
+  { id: 'meta/llama-3.3-70b-instruct', name: 'Llama 3.3 70B Instruct', category: 'Genel & Kodlama' },
+  { id: 'nvidia/nemotron-nano-12b-v2-vl', name: 'Nemotron Nano 12B VL', category: 'Görsel & Metin' },
+  { id: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning', name: 'Nemotron 3 Omni 30B Reasoning', category: 'Akıl Yürütme' },
+  { id: 'moonshotai/kimi-k2.6', name: 'Kimi K2.6 (Moonshot AI)', category: 'Çok Modlu & Kod' },
+  { id: 'mistralai/ministral-14b-instruct-2512', name: 'Ministral 14B Instruct', category: 'Hızlı Asistan' },
+  { id: 'meta/llama-4-maverick-17b-128e-instruct', name: 'Llama 4 Maverick 17B', category: 'Yeni Nesil Llama' },
+  { id: 'meta/llama-3.2-11b-vision-instruct', name: 'Llama 3.2 11B Vision', category: 'Görsel Analiz' },
+  { id: 'meta/llama-3.2-90b-vision-instruct', name: 'Llama 3.2 90B Vision', category: 'Büyük Görsel Model' },
+  { id: 'meta/llama-3.2-3b-instruct', name: 'Llama 3.2 3B Instruct', category: 'Hafif & Hızlı' },
+  { id: 'meta/llama-3.2-1b-instruct', name: 'Llama 3.2 1B Instruct', category: 'Ultra Hafif' },
+  { id: 'google/gemma-2-2b-it', name: 'Gemma 2 2B IT', category: 'Google Gemma' },
+  { id: 'meta/llama-3_1-70b-instruct', name: 'Llama 3.1 70B Instruct', category: 'Güçlü Llama' },
+  { id: 'meta/llama-3_1-8b-instruct', name: 'Llama 3.1 8B Instruct', category: 'Dengeli Llama' },
+  { id: 'google/google-paligemma', name: 'Google PaliGemma', category: 'Görsel Tanıma' },
+  { id: 'mistralai/mixtral-8x7b-instruct', name: 'Mixtral 8x7B Instruct', category: 'Uzman Ağlar (MoE)' }
+];
+
 export const createChat = () => {
   return {
-    sendMessageStream: async ({ messages }: { messages: { id: string; role: 'user' | 'assistant'; text: string; }[] }) => {
+    sendMessageStream: async ({ messages, model }: { messages: { id: string; role: 'user' | 'assistant'; text: string; }[]; model?: string }) => {
       const formattedMessages = messages.map(m => ({
         role: m.role,
         content: m.text
       }));
 
-      const userApiKey = typeof window !== 'undefined' ? (localStorage.getItem('gemini_api_key') || '') : '';
-
       const response = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
-          'X-Gemini-API-Key': userApiKey
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ messages: formattedMessages }),
+        body: JSON.stringify({ 
+          messages: formattedMessages,
+          model: model || 'meta/llama-3.3-70b-instruct'
+        }),
       });
 
       if (!response.ok) {
@@ -38,12 +56,10 @@ export const createChat = () => {
             
             if (value) {
               const decoded = decoder.decode(value, { stream: true });
-              console.log('Stream chunk received:', decoded);
               buffer += decoded;
               
-              // Satır satır ayır (Ollama NDJSON formatındadır)
               let lines = buffer.split('\n');
-              buffer = lines.pop() || ''; // Tamamlanmamış son satırı sakla
+              buffer = lines.pop() || '';
 
               for (const line of lines) {
                 const trimmed = line.trim();
@@ -65,12 +81,6 @@ export const createChat = () => {
                   
                   if (json.done) return;
                 } catch (e) {
-                  if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html')) {
-                    yield { text: '⚠️ Sunucu bir hata sayfası döndürdü (HTML). Muhtemelen tünel kapalı veya bağlantı sorunu var.' };
-                    return;
-                  }
-                  
-                  // Eğer JSON başında/sonunda garip karakterler varsa temizlemeyi dene
                   try {
                     const cleanJson = trimmed.substring(trimmed.indexOf('{'), trimmed.lastIndexOf('}') + 1);
                     const json = JSON.parse(cleanJson);
@@ -82,7 +92,7 @@ export const createChat = () => {
 
                     if (json.message?.content) yield { text: json.message.content };
                   } catch (innerError) {
-                    // Hala hatalıysa bu parçayı atla
+                    // Skip unparseable line
                   }
                 }
               }
