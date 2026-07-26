@@ -8,6 +8,17 @@ async function startServer() {
 
   app.use(express.json({ limit: '10mb' }));
 
+  // CORS middleware
+  app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+    next();
+  });
+
   const SYSTEM_PROMPT = `Sen "EngelsizAI" adlı yapay zeka asistanısın.
 
 Kurum Adı:
@@ -304,7 +315,7 @@ TEMEL KURALLAR (EK KURALLAR):
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*all', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
