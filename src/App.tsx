@@ -1,4 +1,5 @@
 import { useState, FormEvent, useEffect, useRef } from 'react';
+import packageJson from '../package.json';
 import { createChat, NVIDIA_MODELS } from './services/geminiService';
 import { 
   Send, 
@@ -367,7 +368,7 @@ export default function App() {
                 <span>NVIDIA NIM</span>
               </span>
               <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-custom border border-border/40">
-                v1.1.0
+                v{packageJson.version}
               </span>
             </div>
           </div>

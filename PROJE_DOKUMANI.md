@@ -5,7 +5,7 @@
 **Geliştirici:** Miraç Birben (Feyzullah Kıyıklık Engelliler Sarayı Öğrencisi)  
 **Bağlı Kurum:** Bağcılar Belediyesi - Feyzullah Kıyıklık Engelliler Sarayı  
 **Proje Türü:** Yapay Zeka Destekli Kurumsal Rehber ve Asistan Uygulaması (Web & Mobil)  
-**Sürüm:** v1.0.6  
+**Sürüm:** v1.1.0  
 
 EngelsizAI, engelli bireylerin, ailelerinin ve bakım verenlerin Feyzullah Kıyıklık Engelliler Sarayı'nın sunduğu hizmetlere, kurslara ve sosyal imkanlara en hızlı, doğru ve empatik şekilde ulaşmasını sağlamak amacıyla geliştirilmiş yapay zeka tabanlı bir sohbet asistanıdır.
 

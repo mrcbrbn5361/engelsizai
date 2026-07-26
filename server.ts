@@ -164,7 +164,7 @@ TEMEL KURALLAR (EK KURALLAR):
     try {
       const { messages, model } = req.body;
       const selectedModel = model || "meta/llama-3.3-70b-instruct";
-      const nvidiaApiKey = process.env.NVIDIA_API_KEY || process.env.NVIDIA_KEY || process.env.NV_API_KEY || process.env.OPENROUTER_API_KEY;
+      const nvidiaApiKey = process.env.NVIDIA_API_KEY || process.env.NVIDIA_KEY || process.env.NV_API_KEY;
 
       const formattedMessages = [
         { role: "system", content: SYSTEM_PROMPT },
