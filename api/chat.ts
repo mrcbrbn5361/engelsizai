@@ -131,7 +131,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const nvidiaResponse = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+    let nvidiaResponse = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${nvidiaApiKey}`,
@@ -148,17 +148,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     });
 
+    if (!nvidiaResponse.ok && selectedModel !== "meta/llama-3.3-70b-instruct") {
+      console.warn(`[Vercel Serverless] Model ${selectedModel} returned ${nvidiaResponse.status}. Attempting fallback to meta/llama-3.3-70b-instruct...`);
+      nvidiaResponse = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${nvidiaApiKey}`,
+          "Content-Type": "application/json",
+          "Accept": "text/event-stream"
+        },
+        body: JSON.stringify({
+          model: "meta/llama-3.3-70b-instruct",
+          messages: payloadMessages,
+          temperature: 0.6,
+          top_p: 0.7,
+          max_tokens: 2048,
+          stream: true
+        })
+      });
+    }
+
     if (!nvidiaResponse.ok) {
       const errorText = await nvidiaResponse.text().catch(() => '');
-      let cleanError = `Servis Yanıt Hatası (${nvidiaResponse.status})`;
-      try {
-        const jsonErr = JSON.parse(errorText);
-        cleanError = jsonErr.detail || jsonErr.message || jsonErr.error?.message || cleanError;
-      } catch (e) {
-        if (errorText) cleanError += `: ${errorText.substring(0, 150)}`;
-      }
+      console.error("[Vercel Serverless Error]", nvidiaResponse.status, errorText);
       res.write(JSON.stringify({ 
-        message: { content: `⚠️ **EngelsizAI Sunucu Yanıtı (${nvidiaResponse.status}):** ${cleanError}` },
+        message: { content: "⚠️ Seçtiğiniz model şu anda hizmet veremiyor. Lütfen ana modeli (EngelsizChat-1.0) deneyin." },
         done: true 
       }) + '\n');
       res.end();

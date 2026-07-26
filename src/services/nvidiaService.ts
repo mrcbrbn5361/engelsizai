@@ -43,6 +43,7 @@ export const NVIDIA_MODELS: NvidiaModel[] = [
   // Akıl Yürütme (Reasoning)
   { id: 'deepseek-ai/deepseek-r1', name: 'EngelsizReasoning-1.0 (Derin Akıl Yürütme)', category: 'Akıl Yürütme (Reasoning)' },
   { id: 'qwen/qwq-32b-preview', name: 'EngelsizQwQ-32B Reasoning', category: 'Akıl Yürütme (Reasoning)' },
+  { id: 'nvidia/ising-calibration-1.5-31b', name: 'EngelsizIsing-Calibration 31B (NVIDIA Preview)', category: 'Akıl Yürütme (Reasoning)' },
 
   // Kodlama & Yazılım (Coding)
   { id: 'qwen/qwen2.5-coder-32b-instruct', name: 'EngelsizCode-1.0 Pro', category: 'Kodlama & Yazılım' },

@@ -144,7 +144,7 @@ MİSYON VE USLUP:
       }
 
       // Call NVIDIA NIM API
-      const nvidiaResponse = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+      let nvidiaResponse = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${nvidiaApiKey}`,
@@ -161,10 +161,36 @@ MİSYON VE USLUP:
         })
       });
 
+      // Fallback if the selected model returns an error (404 / 400 etc.)
+      if (!nvidiaResponse.ok && selectedModel !== "meta/llama-3.3-70b-instruct") {
+        console.warn(`[NVIDIA NIM] Model ${selectedModel} returned ${nvidiaResponse.status}. Attempting fallback to meta/llama-3.3-70b-instruct...`);
+        nvidiaResponse = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${nvidiaApiKey}`,
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream"
+          },
+          body: JSON.stringify({
+            model: "meta/llama-3.3-70b-instruct",
+            messages: formattedMessages,
+            temperature: 0.6,
+            top_p: 0.7,
+            max_tokens: 2048,
+            stream: true
+          })
+        });
+      }
+
       if (!nvidiaResponse.ok) {
-        const errorText = await nvidiaResponse.text();
+        const errorText = await nvidiaResponse.text().catch(() => '');
         console.error("[NVIDIA NIM Error]", nvidiaResponse.status, errorText);
-        throw new Error(`NVIDIA API yanıt hatası (${nvidiaResponse.status}): ${errorText.substring(0, 150)}`);
+        res.write(JSON.stringify({ 
+          message: { content: "⚠️ Yapay zeka servisi şu anda bu modele yanıt veremiyor. Lütfen biraz sonra tekrar deneyin veya ana modeli (EngelsizChat-1.0) seçin." },
+          done: true 
+        }) + '\n');
+        res.end();
+        return;
       }
 
       const body: any = nvidiaResponse.body;
