@@ -634,6 +634,7 @@ export default function App() {
                     <Markdown 
                       remarkPlugins={[remarkGfm]}
                       components={{
+                        p: ({ children }) => <div className="mb-2 last:mb-0">{children}</div>,
                         code: CodeBlock,
                         img: ImageWithLoader
                       }}

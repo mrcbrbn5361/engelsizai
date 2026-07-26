@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, Check, Code as CodeIcon, Download, Sparkles, Image as ImageIcon, Loader2, ExternalLink } from 'lucide-react';
+import { Copy, Check, Code as CodeIcon, Download, Sparkles, Image as ImageIcon, ExternalLink } from 'lucide-react';
 
 export const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
   const [copied, setCopied] = useState(false);
@@ -71,7 +71,7 @@ export const ImageWithLoader = ({ src, alt, ...props }: any) => {
   };
 
   return (
-    <div className="my-4 my-3.5 space-y-2">
+    <div className="my-3.5 space-y-2">
       <div className="relative rounded-2xl overflow-hidden border-2 border-teal-500/40 bg-slate-950 shadow-2xl min-h-[280px] max-w-lg mx-auto flex items-center justify-center group">
         
         {/* Loading Animation Placeholder */}
@@ -82,12 +82,12 @@ export const ImageWithLoader = ({ src, alt, ...props }: any) => {
               <Sparkles className="absolute inset-0 m-auto text-teal-300 animate-pulse" size={24} />
             </div>
             <div className="space-y-1">
-              <span className="text-xs font-mono font-bold text-teal-300 tracking-wider uppercase block flex items-center justify-center gap-1.5">
+              <span className="text-xs font-mono font-bold text-teal-300 tracking-wider uppercase flex items-center justify-center gap-1.5">
                 <ImageIcon size={14} /> Yapay Zeka Görseli Oluşturuluyor...
               </span>
-              <p className="text-[11px] text-slate-400 max-w-xs">
+              <span className="block text-[11px] text-slate-400 max-w-xs">
                 EngelsizAI görsel motoru piksel çözünürlüğünü işliyor ve PNG formatına dönüştürüyor.
-              </p>
+              </span>
             </div>
           </div>
         )}
@@ -95,7 +95,7 @@ export const ImageWithLoader = ({ src, alt, ...props }: any) => {
         {/* Error Fallback */}
         {error && (
           <div className="p-6 text-center text-rose-400 text-xs font-mono space-y-2">
-            <p>⚠️ Görsel yüklenirken bir sorun oluştu.</p>
+            <span className="block">⚠️ Görsel yüklenirken bir sorun oluştu.</span>
             <a href={src} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline text-teal-300">
               Görseli Harici Aç <ExternalLink size={12} />
             </a>
