@@ -1,5 +1,4 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI } from '@google/genai';
 
 const SYSTEM_PROMPT = `Sen "EngelsizAI" adlı yapay zeka asistanısın.
 
@@ -8,6 +7,13 @@ Feyzullah Kıyıklık Engelliler Sarayı
 
 Bağlı Olduğu Kurum:
 Bağcılar Belediyesi
+
+Geliştirici:
+Feyzullah Kıyıklık Engelliler Sarayı öğrencisi Miraç Birben
+
+Altyapı & Modeller:
+NVIDIA NIM (NVIDIA Inference Microservices) yüksek performanslı yapay zeka altyapısı ve NVIDIA tarafından sağlanan açık kaynaklı yapay zeka modelleri (Meta Llama 3.3 70B, NVIDIA Nemotron, Mistral vb.).
+Kendi model adını sorduklarında seçilen NVIDIA NIM modelini veya EngelsizAI olduğunu söyle. ASLA Gemini, OpenAI, GPT veya Claude kullandığını söyleme.
 
 Adres:
 Barbaros Mahallesi  
@@ -172,7 +178,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Connection', 'keep-alive');
 
     if (!nvidiaApiKey) {
-      const responseText = "Merhaba! Feyzullah Kıyıklık Engelliler Sarayı Yapay Zeka Asistanıyım. Sorularınızı yanıtlamaya hazırım!";
+      const responseText = "Merhaba! Ben Feyzullah Kıyıklık Engelliler Sarayı öğrencisi **Miraç Birben** tarafından geliştirilen **EngelsizAI Yapay Zeka Asistanıyım** (NVIDIA NIM). Sorularınızı yanıtlamaya hazırım!";
       res.write(JSON.stringify({ message: { content: responseText }, done: true }) + '\n');
       res.end();
       return;
@@ -196,22 +202,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     if (!nvidiaResponse.ok) {
-      throw new Error(`NVIDIA API status: ${nvidiaResponse.status}`);
+      const errorText = await nvidiaResponse.text().catch(() => '');
+      throw new Error(`NVIDIA NIM API yanıt hatası (${nvidiaResponse.status}): ${errorText.substring(0, 100)}`);
     }
 
-    if (!nvidiaResponse.body) {
-      throw new Error("No response body");
+    const body: any = nvidiaResponse.body;
+    if (!body) {
+      throw new Error("NVIDIA API yanıt akışı boş döndü.");
     }
 
-    const reader = (nvidiaResponse.body as any).getReader();
     const decoder = new TextDecoder("utf-8");
     let buffer = "";
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
+    const processChunk = (chunk: Uint8Array | string) => {
+      const decoded = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
+      buffer += decoded;
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
@@ -227,9 +232,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               res.write(JSON.stringify({ message: { content: deltaText }, done: false }) + '\n');
             }
           } catch (e) {
-            // skip
+            // Ignore parse errors for incomplete chunks
           }
         }
+      }
+    };
+
+    if (typeof body.getReader === 'function') {
+      const reader = body.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) processChunk(value);
+      }
+    } else if (typeof body[Symbol.asyncIterator] === 'function') {
+      for await (const chunk of body) {
+        processChunk(chunk);
       }
     }
 

@@ -27,6 +27,13 @@ Feyzullah Kıyıklık Engelliler Sarayı
 Bağlı Olduğu Kurum:
 Bağcılar Belediyesi
 
+Geliştirici:
+Feyzullah Kıyıklık Engelliler Sarayı öğrencisi Miraç Birben
+
+Altyapı & Modeller:
+NVIDIA NIM (NVIDIA Inference Microservices) yüksek performanslı yapay zeka altyapısı ve NVIDIA tarafından sağlanan açık kaynaklı yapay zeka modelleri (Meta Llama 3.3 70B, NVIDIA Nemotron, Mistral vb.).
+Kendi model adını sorduklarında seçilen NVIDIA NIM modelini veya EngelsizAI olduğunu söyle. ASLA Gemini, OpenAI, GPT veya Claude kullandığını söyleme.
+
 Adres:
 Barbaros Mahallesi  
 Hoca Ahmet Yesevi Caddesi No:151  
@@ -225,19 +232,17 @@ TEMEL KURALLAR (EK KURALLAR):
         throw new Error(`NVIDIA API yanıt hatası (${nvidiaResponse.status}): ${errorText.substring(0, 150)}`);
       }
 
-      if (!nvidiaResponse.body) {
+      const body: any = nvidiaResponse.body;
+      if (!body) {
         throw new Error("NVIDIA API yanıt akışı boş döndü.");
       }
 
-      const reader = nvidiaResponse.body.getReader();
       const decoder = new TextDecoder("utf-8");
       let buffer = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
+      const processChunk = (chunk: Uint8Array | string) => {
+        const decoded = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
+        buffer += decoded;
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 
@@ -256,6 +261,19 @@ TEMEL KURALLAR (EK KURALLAR):
               // Ignore invalid chunk
             }
           }
+        }
+      };
+
+      if (typeof body.getReader === 'function') {
+        const reader = body.getReader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) processChunk(value);
+        }
+      } else if (typeof body[Symbol.asyncIterator] === 'function') {
+        for await (const chunk of body) {
+          processChunk(chunk);
         }
       }
 
