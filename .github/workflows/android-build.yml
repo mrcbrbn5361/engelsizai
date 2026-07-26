@@ -10,14 +10,23 @@ jobs:
           node-version: '20'
       - run: npm install
       - run: npm run build
-      - run: npx cap add android || npx cap sync android
+      - name: Setup Android Platform
+        run: |
+          if [ ! -f "android/app/build.gradle" ]; then
+            echo "android/app/build.gradle not found. Creating android platform..."
+            rm -rf android
+            npx cap add android
+          else
+            echo "android platform exists. Syncing..."
+            npx cap sync android
+          fi
       - name: Update Android Version from package.json
         run: |
           VERSION_NAME=$(node -p "require('./package.json').version")
           VERSION_CODE=$(node -p "const [ma, mi, pa] = require('./package.json').version.split('.').map(v => parseInt(v) || 0); ma * 10000 + mi * 100 + pa;")
           echo "Setting Android versionName: $VERSION_NAME, versionCode: $VERSION_CODE"
-          sed -i "s/versionCode 1/versionCode $VERSION_CODE/g" android/app/build.gradle
-          sed -i 's/versionName "1.0"/versionName "'"$VERSION_NAME"'"/g' android/app/build.gradle
+          sed -i -E "s/versionCode [0-9]+/versionCode $VERSION_CODE/g" android/app/build.gradle
+          sed -i -E 's/versionName "[^"]+"/versionName "'"$VERSION_NAME"'"/g' android/app/build.gradle
       - name: Build APK
         run: |
           cd android
