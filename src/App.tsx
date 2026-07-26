@@ -1,6 +1,6 @@
 import { useState, FormEvent, useEffect, useRef } from 'react';
 import packageJson from '../package.json';
-import { createChat, NVIDIA_MODELS } from './services/geminiService';
+import { createChat, NVIDIA_MODELS } from './services/nvidiaService';
 import { 
   Send, 
   Loader2, 
@@ -31,6 +31,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Analytics } from "@vercel/analytics/react";
+import { CodeBlock, ImageWithLoader } from './components/MarkdownComponents';
 
 interface Message { 
   id: string; 
@@ -62,6 +63,18 @@ const SUGGESTIONS = [
     desc: 'Ergoterapi, Duyu Bütünleme ve Terapiler',
     icon: Users,
     query: 'Engelliler Sarayının sunduğu destek, rehabilitasyon ve terapi hizmetleri nelerdir?' 
+  },
+  { 
+    title: 'Yapay Zeka Görseli', 
+    desc: 'Resim ve İllüstrasyon Oluşturma Yeteneği',
+    icon: Sparkles,
+    query: 'Engelsiz yaşam merkezi önünde teknolojik yardımcılarıyla eğlenen mutlu insanları gösteren renkli bir illüstrasyon resim çiz' 
+  },
+  { 
+    title: 'Kod ve Yazılım', 
+    desc: 'Kod Blokları ve Yazılım Geliştirme',
+    icon: Zap,
+    query: 'Python diliyle engelliler için erişilebilir sesli metin okuma ve komut dinleme kodu yaz' 
   }
 ];
 
@@ -381,13 +394,17 @@ export default function App() {
             <select
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
-              aria-label="NVIDIA Model Seçin"
-              className="appearance-none bg-slate-950 text-teal-300 text-xs font-mono font-bold py-1.5 pl-3 pr-8 rounded-custom border border-teal-500/40 hover:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400 cursor-pointer shadow-md"
+              aria-label="EngelsizAI Model Seçin"
+              className="appearance-none bg-slate-950 text-teal-300 text-xs font-mono font-bold py-1.5 pl-3 pr-8 rounded-custom border border-teal-500/40 hover:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400 cursor-pointer shadow-md max-w-[220px] md:max-w-[320px] truncate"
             >
-              {NVIDIA_MODELS.map(m => (
-                <option key={m.id} value={m.id} className="bg-slate-900 text-foreground py-1">
-                  [{m.category}] {m.name}
-                </option>
+              {Array.from(new Set(NVIDIA_MODELS.map(m => m.category))).map(category => (
+                <optgroup key={category} label={`--- ${category} ---`} className="bg-slate-900 text-teal-400 font-bold">
+                  {NVIDIA_MODELS.filter(m => m.category === category).map(m => (
+                    <option key={m.id} value={m.id} className="bg-slate-950 text-foreground py-1 font-normal">
+                      {m.name}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
             <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-teal-400 pointer-events-none" />
@@ -606,15 +623,21 @@ export default function App() {
                     </div>
 
                     {m.role === 'assistant' && (
-                      <span className="text-[9px] font-mono text-muted-foreground/80 bg-muted/60 px-1.5 py-0.5 rounded border border-border/30">
-                        GEMINI 3.1 FLASH LITE
+                      <span className="text-[9px] font-mono text-teal-300 bg-teal-950/60 px-2 py-0.5 rounded border border-teal-500/30 font-bold">
+                        ENGELSİZAI // {NVIDIA_MODELS.find(x => x.id === selectedModel)?.name || selectedModel}
                       </span>
                     )}
                   </div>
 
                   {/* Markdown Text Body */}
                   <div className={`prose max-w-none break-words w-full overflow-x-auto ${getBodyTextClass()}`}>
-                    <Markdown remarkPlugins={[remarkGfm]}>
+                    <Markdown 
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        code: CodeBlock,
+                        img: ImageWithLoader
+                      }}
+                    >
                       {m.text.replace(/<br\s*\/?>/gi, '\n')}
                     </Markdown>
                   </div>

@@ -41,10 +41,10 @@ Proje, modern web teknolojileri kullanılarak hem web tarayıcılarında hem de 
 * **Lucide React:** Modern ve hafif ikon kütüphanesi.
 
 ### 3.2. Backend & API (Arka Yüz)
-* **Vercel Serverless Functions (`api/openrouter.ts`):** Uygulamanın canlı ortamdaki API uç noktası. İstemciden gelen mesajları alır, yapay zeka sağlayıcısına iletir ve sonucu döndürür.
+* **Vercel Serverless Functions (`api/chat.ts`):** Uygulamanın canlı ortamdaki API uç noktası. İstemciden gelen mesajları alır, NVIDIA NIM altyapısına iletir ve canlı yanıt akışını (SSE stream) döndürür.
 * **Express.js (`server.ts`):** Yerel geliştirme ortamında (Localhost) API isteklerini karşılamak ve Vite ile entegre çalışmak için kurulan yerel sunucu.
-* **OpenRouter API:** Yapay zeka modeline erişim sağlayan ağ geçidi.
-* **Yapay Zeka Modeli:** `openai/gpt-oss-120b:free` (Hızlı, güvenilir ve yüksek kapasiteli açık kaynaklı model).
+* **NVIDIA NIM API:** High-performance NVIDIA Inference Microservices (`https://integrate.api.nvidia.com/v1/chat/completions`).
+* **Yapay Zeka Modelleri:** 73 adet ücretsiz NVIDIA NIM modeli (Meta Llama 3.3 70B, DeepSeek V3/R1, NVIDIA Nemotron, Mistral Large 2, Qwen 2.5 vb.).
 
 ### 3.3. Mobil Entegrasyon
 * **Capacitor (v6):** Web uygulamasını yerel (native) Android ve iOS uygulamasına dönüştürmek için kullanılan köprü teknolojisi.
@@ -54,9 +54,9 @@ Proje, modern web teknolojileri kullanılarak hem web tarayıcılarında hem de 
 ## 4. Mimari ve Çalışma Mantığı
 
 1. **Kullanıcı Etkileşimi:** Kullanıcı arayüzdeki metin kutusuna sorusunu yazar ve gönderir.
-2. **İstek Gönderimi:** `geminiService.ts` dosyası, kullanıcının mesajını alır ve yapılandırılmış API adresine (`https://engelsizai.vercel.app/api/openrouter`) POST isteği atar.
-3. **Sistem Promptu (Kişilik Yüklemesi):** Backend, kullanıcının mesajını alıp OpenRouter'a iletmeden önce, yapay zekaya devasa bir "Sistem Promptu" ekler. Bu prompt; kurumun adresini, telefonunu, kurslarını, misyonunu ve asistanın nasıl davranması gerektiğini (empatik, HTML kullanmadan, Markdown ile) dikte eder.
-4. **Yapay Zeka Yanıtı:** Model, kendisine verilen kurallar çerçevesinde bir yanıt üretir.
+2. **İstek Gönderimi:** `geminiService.ts` dosyası, kullanıcının mesajını alır ve yapılandırılmış API adresine (`/api/chat`) POST isteği atar.
+3. **Sistem Promptu (Kişilik Yüklemesi):** Backend, kullanıcının mesajını alıp NVIDIA NIM API'sine iletmeden önce, yapay zekaya devasa bir "Sistem Promptu" ekler. Bu prompt; kurumun adresini, telefonunu, kurslarını, misyonunu ve asistanın nasıl davranması gerektiğini (empatik, HTML kullanmadan, Markdown ile) dikte eder.
+4. **Yapay Zeka Yanıtı:** Seçilen NVIDIA NIM modeli, kendisine verilen kurallar çerçevesinde bir yanıt üretir.
 5. **Arayüzde Gösterim:** Gelen yanıt, React state'ine eklenir. `react-markdown` kütüphanesi ile formatlanır, `<br>` gibi istenmeyen HTML etiketleri temizlenir ve `motion` ile animasyonlu bir şekilde ekranda belirir.
 
 ---

@@ -1,5 +1,6 @@
 {
   "name": "EngelsizAI",
-  "description": "Feyzullah Kıyıklık Engelliler Sarayı Resmi Yapay Zeka Asistanı",
-  "requestFramePermissions": ["geolocation"]
+  "description": "Feyzullah Kıyıklık Engelliler Sarayı Resmi Yapay Zeka Asistanı (NVIDIA NIM altyapılı)",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
